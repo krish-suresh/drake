@@ -11,9 +11,6 @@
 namespace drake {
 namespace multibody {
 
-template <typename Scalar>
-using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
-
 template <typename T>
 class BallRpySpring final : public ForceElement<T> {
  public:

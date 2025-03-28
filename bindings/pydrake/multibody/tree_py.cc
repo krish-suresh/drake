@@ -997,6 +997,21 @@ void DoScalarDependentDefinitions(py::module m, T) {
   }
 
   {
+    using Class = BallRpySpring<T>;
+    constexpr auto& cls_doc = doc.BallRpySpring;
+    auto cls = DefineTemplateClassWithDefault<Class, ForceElement<T>>(
+        m, "BallRpySpring", param, cls_doc.doc);
+    cls  // BR
+        .def(py::init<const BallRpyJoint<T>&, const Vector3d&, const Vector3d&>(),
+            py::arg("joint"), py::arg("nominal_angles"), py::arg("stiffness"),
+            cls_doc.ctor.doc)
+        .def("joint", &Class::joint, py_rvp::reference_internal,
+            cls_doc.joint.doc)
+        .def("nominal_angles", &Class::nominal_angles, cls_doc.nominal_angles.doc)
+        .def("stiffness", &Class::stiffness, cls_doc.stiffness.doc);
+  }
+
+  {
     using Class = PrismaticSpring<T>;
     constexpr auto& cls_doc = doc.PrismaticSpring;
     auto cls = DefineTemplateClassWithDefault<Class, ForceElement<T>>(
