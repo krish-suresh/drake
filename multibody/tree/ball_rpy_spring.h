@@ -15,14 +15,14 @@ template <typename Scalar>
 using Vector3 = Eigen::Matrix<Scalar, 3, 1>;
 
 template <typename T>
-class BallSpring final : public ForceElement<T> {
+class BallRpySpring final : public ForceElement<T> {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(BallSpring);
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(BallRpySpring);
 
-  BallSpring(const BallRpyJoint<T>& joint, const Vector3<double>& nominal_angles,
+  BallRpySpring(const BallRpyJoint<T>& joint, const Vector3<double>& nominal_angles,
                  const Vector3<double>& stiffness);
 
-  ~BallSpring() override;
+  ~BallRpySpring() override;
 
   const BallRpyJoint<T>& joint() const;
 
@@ -66,9 +66,9 @@ class BallSpring final : public ForceElement<T> {
   // Allow different specializations to access each other's private data for
   // scalar conversion.
   template <typename U>
-  friend class BallSpring;
+  friend class BallRpySpring;
 
-  BallSpring(ModelInstanceIndex model_instance, JointIndex joint_index,
+  BallRpySpring(ModelInstanceIndex model_instance, JointIndex joint_index,
                  const Vector3<double>& nominal_angles, const Vector3<double>& stiffness);
 
   // Helper method to make a clone templated on ToScalar().
@@ -77,12 +77,12 @@ class BallSpring final : public ForceElement<T> {
       const internal::MultibodyTree<ToScalar>& tree_clone) const;
 
   const JointIndex joint_index_;
-  const Vector3<double>& nominal_angles_;
-  const Vector3<double>& stiffness_;
+  const Vector3<double> nominal_angles_;
+  const Vector3<double> stiffness_;
 };
 
 }  // namespace multibody
 }  // namespace drake
 
 DRAKE_DECLARE_CLASS_TEMPLATE_INSTANTIATIONS_ON_DEFAULT_SCALARS(
-    class ::drake::multibody::BallSpring);
+    class ::drake::multibody::BallRpySpring);

@@ -36,6 +36,7 @@
 #include "drake/multibody/tree/quaternion_floating_joint.h"
 #include "drake/multibody/tree/revolute_joint.h"
 #include "drake/multibody/tree/revolute_spring.h"
+#include "drake/multibody/tree/ball_rpy_spring.h"
 
 namespace drake {
 namespace multibody {

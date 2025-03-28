@@ -84,6 +84,7 @@ drake_cc_library(
     name = "multibody_tree_core",
     srcs = [
         "ball_rpy_joint.cc",
+        "ball_rpy_spring.cc",
         "body_node.cc",
         "body_node_impl.cc",
         "body_node_impl_mass_matrix.cc",
@@ -129,6 +130,7 @@ drake_cc_library(
     ],
     hdrs = [
         "ball_rpy_joint.h",
+        "ball_rpy_spring.h",
         "body_node.h",
         "body_node_impl.h",
         "body_node_world.h",
@@ -606,6 +608,15 @@ drake_cc_googletest(
 )
 
 drake_cc_googletest(
+    name = "ball_rpy_spring_test",
+    deps = [
+        ":tree",
+        "//common/test_utilities:eigen_matrix_compare",
+        "//systems/framework:context",
+    ],
+)
+
+drake_cc_googletest(
     name = "prismatic_spring_test",
     deps = [
         ":tree",
@@ -613,6 +624,7 @@ drake_cc_googletest(
         "//systems/framework:context",
     ],
 )
+
 
 drake_cc_googletest(
     name = "revolute_spring_test",
