@@ -214,11 +214,9 @@ class BallRpyJoint final : public Joint<T> {
   /// default_damping()).
   void DoAddInDamping(const systems::Context<T>& context,
                       MultibodyForces<T>* forces) const final {
-    Eigen::Ref<VectorX<T>> t_BMo_F =
-        get_mobilizer().get_mutable_generalized_forces_from_array(
-            &forces->mutable_generalized_forces());
     const Vector3<T>& w_FM = get_angular_velocity(context);
-    t_BMo_F = -this->GetDampingVector(context)[0] * w_FM;
+    const Vector3<T> damping_torque = -this->GetDampingVector(context)[0] * w_FM;
+    AddInTorque(context, damping_torque, forces);
   }
 
  private:
