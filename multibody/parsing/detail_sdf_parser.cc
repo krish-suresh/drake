@@ -40,6 +40,7 @@
 #include "drake/multibody/tree/prismatic_spring.h"
 #include "drake/multibody/tree/revolute_joint.h"
 #include "drake/multibody/tree/revolute_spring.h"
+#include "drake/multibody/tree/ball_rpy_spring.h"
 #include "drake/multibody/tree/scoped_name.h"
 #include "drake/multibody/tree/screw_joint.h"
 #include "drake/multibody/tree/spatial_inertia.h"
@@ -578,6 +579,32 @@ bool AddRevoluteSpringFromSpecification(const SDFormatDiagnostic& diagnostic,
   return true;
 }
 
+bool AddBallRpySpringFromSpecification(const SDFormatDiagnostic& diagnostic,
+                                        const sdf::Joint& joint_spec,
+                                        const BallRpyJoint<double>& joint,
+                                        MultibodyPlant<double>* plant) {
+  DRAKE_THROW_UNLESS(plant != nullptr);
+  DRAKE_THROW_UNLESS(joint_spec.Type() == sdf::JointType::BALL);
+
+  // Axis specification.
+  const sdf::JointAxis* axis = joint_spec.Axis();
+  if (axis == nullptr) {
+    std::string message =
+        "An axis must be specified for joint '" + joint_spec.Name() + "'";
+    diagnostic.Error(joint_spec.Element(), std::move(message));
+    return false;
+  }
+  // const double spring_reference = axis->SpringReference();
+  const double spring_stiffness = axis->SpringStiffness();
+
+  if (spring_stiffness != 0) {
+    plant->AddForceElement<BallRpySpring>(joint, Vector3<double>::Zero(),
+                                           Vector3<double>{1,1,1}*spring_stiffness);
+  }
+
+  return true;
+}
+
 // Returns joint limits as the tuple (lower_limit, upper_limit,
 // velocity_limit, acceleration_limit).  The units of the limits depend on the
 // particular joint type.  For prismatic joints, units are meters for the
@@ -815,6 +842,10 @@ bool AddJointFromSpecification(const SDFormatDiagnostic& diagnostic,
           joint_spec.Name(), parent_body, X_PJ, child_body, X_CJ, damping);
       // At most, this prints a warning (it does not add an actuator).
       AddJointActuatorFromSpecification(diagnostic, joint_spec, joint, plant);
+      if (!AddBallRpySpringFromSpecification(diagnostic, joint_spec, joint,
+                                              plant)) {
+        return false;
+      }
       break;
     }
     case sdf::JointType::CONTINUOUS: {
