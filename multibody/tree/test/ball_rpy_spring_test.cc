@@ -1,18 +1,19 @@
 #include "drake/multibody/tree/ball_rpy_spring.h"
 
 #include <gtest/gtest.h>
+
 #include "drake/common/eigen_types.h"
 #include "drake/common/test_utilities/eigen_matrix_compare.h"
+#include "drake/common/text_logging.h"
+#include "drake/multibody/tree/ball_rpy_joint.h"
 #include "drake/multibody/tree/multibody_tree-inl.h"
 #include "drake/multibody/tree/multibody_tree_system.h"
 #include "drake/multibody/tree/position_kinematics_cache.h"
-#include "drake/multibody/tree/ball_rpy_joint.h"
 #include "drake/multibody/tree/rigid_body.h"
 #include "drake/multibody/tree/spatial_inertia.h"
 #include "drake/multibody/tree/velocity_kinematics_cache.h"
 #include "drake/multibody/tree/weld_joint.h"
 #include "drake/systems/framework/context.h"
-#include "drake/common/text_logging.h"
 
 namespace drake {
 
@@ -42,7 +43,7 @@ class SpringTester : public ::testing::Test {
                                             kDamping);
     // Add spring
     spring_ = &model->AddForceElement<BallRpySpring>(*joint_, nominal_angles_,
-                                                      stiffness_);
+                                                     stiffness_);
 
     // We are done adding modeling elements. Transfer tree to system and get
     // a Context.
@@ -78,8 +79,8 @@ class SpringTester : public ::testing::Test {
   std::unique_ptr<MultibodyForces<double>> forces_;
 
   // Parameters of the case.
-  const Vector3<double> nominal_angles_{0,0,0};  // [m]
-  const Vector3<double> stiffness_{1,1,1};      // [N/m]
+  const Vector3<double> nominal_angles_{0, 0, 0};  // [m]
+  const Vector3<double> stiffness_{1, 1, 1};       // [N/m]
 };
 
 TEST_F(SpringTester, ConstructionAndAccessors) {
@@ -91,7 +92,7 @@ TEST_F(SpringTester, ConstructionAndAccessors) {
 // Verify the spring applies no forces when the separation equals the
 // nominal angle.
 TEST_F(SpringTester, NominalAngle) {
-  SetJointState(Vector3<double>{0,0,0}, Vector3<double>::Zero(3));
+  SetJointState(Vector3<double>{0, 0, 0}, Vector3<double>::Zero(3));
   CalcSpringForces();
   const VectorX<double>& generalized_forces = forces_->generalized_forces();
   EXPECT_EQ(generalized_forces, VectorX<double>::Zero(3));
@@ -101,10 +102,9 @@ TEST_F(SpringTester, NominalAngle) {
   EXPECT_NEAR(potential_energy, 0.0, kTolerance);
 }
 
-
 // Verify forces computation when the spring angle differs from the nominal.
 TEST_F(SpringTester, DeltaAngle) {
-  Vector3<double> angles{1,0,0};
+  Vector3<double> angles{1, 0, 0};
   SetJointState(angles, Vector3<double>::Zero(3));
   CalcSpringForces();
   const VectorX<double>& generalized_forces = forces_->generalized_forces();
@@ -123,7 +123,8 @@ TEST_F(SpringTester, DeltaAngle) {
   //     *context_, tree().EvalPositionKinematics(*context_));
   // EXPECT_NEAR(potential_energy, potential_energy_expected, kTolerance);
 
-  // // Since the spring configuration is static, that is velocities are zero, we
+  // // Since the spring configuration is static, that is velocities are zero,
+  // we
   // // expect zero conservative and non-conservative power.
   // const double conservative_power = spring_->CalcConservativePower(
   //     *context_, tree().EvalPositionKinematics(*context_),

@@ -2,24 +2,25 @@
 
 #include <utility>
 
-#include "drake/multibody/tree/multibody_tree.h"
-
 #include "drake/common/unused.h"
+#include "drake/multibody/tree/multibody_tree.h"
 namespace drake {
 namespace multibody {
 
 // // using namespace drake::multibody;
 
 template <typename T>
-BallRpySpring<T>::BallRpySpring(const BallRpyJoint<T>& joint, const Vector3<double>& nominal_angles, 
-                    const Vector3<double>& stiffness)
+BallRpySpring<T>::BallRpySpring(const BallRpyJoint<T>& joint,
+                                const Vector3<double>& nominal_angles,
+                                const Vector3<double>& stiffness)
     : BallRpySpring(joint.model_instance(), joint.index(), nominal_angles,
-                     stiffness) {}
+                    stiffness) {}
 
 template <typename T>
 BallRpySpring<T>::BallRpySpring(ModelInstanceIndex model_instance,
-                                  JointIndex joint_index, const Vector3<double>& nominal_angles,
-                                  const Vector3<double>& stiffness)
+                                JointIndex joint_index,
+                                const Vector3<double>& nominal_angles,
+                                const Vector3<double>& stiffness)
     : ForceElement<T>(model_instance),
       joint_index_(joint_index),
       nominal_angles_(nominal_angles),
@@ -63,11 +64,10 @@ T BallRpySpring<T>::CalcConservativePower(
     const systems::Context<T>& context,
     const internal::PositionKinematicsCache<T>&,
     const internal::VelocityKinematicsCache<T>&) const {
-
   const Vector3<T> delta = nominal_angles_ - joint().get_angles(context);
   const Vector3<T> theta_dot = joint().get_angular_velocity(context);
   const Vector3<T> f = stiffness_.array() * delta.array();
-  return  f.dot(theta_dot);
+  return f.dot(theta_dot);
 }
 
 template <typename T>
@@ -89,7 +89,7 @@ BallRpySpring<T>::TemplatedDoCloneToScalar(
   // reference, which might not be available during cloning.
   std::unique_ptr<BallRpySpring<ToScalar>> spring_clone(
       new BallRpySpring<ToScalar>(this->model_instance(), joint_index_,
-                                   nominal_angles(), stiffness()));
+                                  nominal_angles(), stiffness()));
   return spring_clone;
 }
 

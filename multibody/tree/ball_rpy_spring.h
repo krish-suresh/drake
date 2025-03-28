@@ -5,8 +5,8 @@
 
 #include "drake/common/default_scalars.h"
 #include "drake/common/drake_copyable.h"
-#include "drake/multibody/tree/force_element.h"
 #include "drake/multibody/tree/ball_rpy_joint.h"
+#include "drake/multibody/tree/force_element.h"
 
 namespace drake {
 namespace multibody {
@@ -19,8 +19,9 @@ class BallRpySpring final : public ForceElement<T> {
  public:
   DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(BallRpySpring);
 
-  BallRpySpring(const BallRpyJoint<T>& joint, const Vector3<double>& nominal_angles,
-                 const Vector3<double>& stiffness);
+  BallRpySpring(const BallRpyJoint<T>& joint,
+                const Vector3<double>& nominal_angles,
+                const Vector3<double>& stiffness);
 
   ~BallRpySpring() override;
 
@@ -69,7 +70,8 @@ class BallRpySpring final : public ForceElement<T> {
   friend class BallRpySpring;
 
   BallRpySpring(ModelInstanceIndex model_instance, JointIndex joint_index,
-                 const Vector3<double>& nominal_angles, const Vector3<double>& stiffness);
+                const Vector3<double>& nominal_angles,
+                const Vector3<double>& stiffness);
 
   // Helper method to make a clone templated on ToScalar().
   template <typename ToScalar>
