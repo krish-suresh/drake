@@ -46,8 +46,7 @@ void BallRpySpring<T>::DoCalcAndAddForceContribution(
     MultibodyForces<T>* forces) const {
   const Vector3<T> delta = nominal_angles_ - joint().get_angles(context);
   const Vector3<T> torque = stiffness_.array() * delta.array();
-  unused(torque);
-  // joint().AddInTorque(context, torque, forces);
+  joint().AddInTorque(context, torque, forces);
 }
 
 template <typename T>
@@ -64,11 +63,7 @@ T BallRpySpring<T>::CalcConservativePower(
     const systems::Context<T>& context,
     const internal::PositionKinematicsCache<T>&,
     const internal::VelocityKinematicsCache<T>&) const {
-  // Since the potential energy is:
-  //   V = 1/2⋅k⋅(θ₀-θ)²
-  // The conservative power is defined as:
-  //  Pc = -d(V)/dt = -[k⋅(θ₀-θ)⋅-dθ/dt] = k⋅(θ₀-θ)⋅dθ/dt
-  // being positive when the potential energy decreases.
+
   const Vector3<T> delta = nominal_angles_ - joint().get_angles(context);
   const Vector3<T> theta_dot = joint().get_angular_velocity(context);
   const Vector3<T> f = stiffness_.array() * delta.array();

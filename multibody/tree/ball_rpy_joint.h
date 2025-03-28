@@ -11,6 +11,7 @@
 #include "drake/multibody/tree/multibody_forces.h"
 #include "drake/multibody/tree/rpy_ball_mobilizer.h"
 
+#include "drake/common/text_logging.h"
 namespace drake {
 namespace multibody {
 
@@ -186,6 +187,15 @@ class BallRpyJoint final : public Joint<T> {
     this->set_default_positions(angles);
   }
 
+  void AddInTorque(const systems::Context<T>& context, const Vector3<T>& torque,
+                   MultibodyForces<T>* forces) const {
+    DRAKE_DEMAND(forces != nullptr);
+    DRAKE_DEMAND(forces->CheckHasRightSizeForModel(this->get_parent_tree()));
+    Eigen::Ref<VectorX<T>> t_BMo_F =
+        get_mobilizer().get_mutable_generalized_forces_from_array(
+            &forces->mutable_generalized_forces());
+    t_BMo_F += torque;
+  }
  protected:
   /// Joint<T> override called through public NVI, Joint::AddInForce().
   /// Adding forces per-dof makes no physical sense. Therefore, this method

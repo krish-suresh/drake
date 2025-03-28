@@ -91,18 +91,48 @@ TEST_F(SpringTester, ConstructionAndAccessors) {
 // Verify the spring applies no forces when the separation equals the
 // nominal angle.
 TEST_F(SpringTester, NominalAngle) {
-  SetJointState(Vector3<double>{1,0,0}, Vector3<double>::Zero(3));
+  SetJointState(Vector3<double>{0,0,0}, Vector3<double>::Zero(3));
   CalcSpringForces();
   const VectorX<double>& generalized_forces = forces_->generalized_forces();
-  for(auto x : generalized_forces) std::cout << x << " ";
-  std::cout << generalized_forces.rows() << "\n";
   EXPECT_EQ(generalized_forces, VectorX<double>::Zero(3));
   // Verify the potential energy is zero.
   const double potential_energy = spring_->CalcPotentialEnergy(
       *context_, tree().EvalPositionKinematics(*context_));
   EXPECT_NEAR(potential_energy, 0.0, kTolerance);
+}
 
-  std::cout << potential_energy << std::endl;
+
+// Verify forces computation when the spring angle differs from the nominal.
+TEST_F(SpringTester, DeltaAngle) {
+  Vector3<double> angles{1,0,0};
+  SetJointState(angles, Vector3<double>::Zero(3));
+  CalcSpringForces();
+  const VectorX<double>& generalized_forces = forces_->generalized_forces();
+
+  const VectorX<double>& expected_generalized_forces =
+      stiffness_.array() * (nominal_angles_ - angles).array();
+  // VectorX<double> expected_generalized_forces(2);
+  // expected_generalized_forces << expected_torque_magnitude, 0;
+  EXPECT_TRUE(CompareMatrices(generalized_forces, expected_generalized_forces,
+                              kTolerance, MatrixCompareType::relative));
+
+  // // Verify the value of the potential energy.
+  // const double potential_energy_expected =
+  //     0.5 * stiffness_ * (angle - nominal_angle_) * (angle - nominal_angle_);
+  // const double potential_energy = spring_->CalcPotentialEnergy(
+  //     *context_, tree().EvalPositionKinematics(*context_));
+  // EXPECT_NEAR(potential_energy, potential_energy_expected, kTolerance);
+
+  // // Since the spring configuration is static, that is velocities are zero, we
+  // // expect zero conservative and non-conservative power.
+  // const double conservative_power = spring_->CalcConservativePower(
+  //     *context_, tree().EvalPositionKinematics(*context_),
+  //     tree().EvalVelocityKinematics(*context_));
+  // EXPECT_NEAR(conservative_power, 0.0, kTolerance);
+  // const double non_conservative_power = spring_->CalcNonConservativePower(
+  //     *context_, tree().EvalPositionKinematics(*context_),
+  //     tree().EvalVelocityKinematics(*context_));
+  // EXPECT_NEAR(non_conservative_power, 0.0, kTolerance);
 }
 
 }  // namespace
