@@ -37,11 +37,10 @@ using systems::sensors::PixelType;
 
 namespace {
 
-class PyRenderEngine : public py::wrapper<RenderEngine> {
+class PyRenderEngine : public RenderEngine {
  public:
   using Base = RenderEngine;
-  using BaseWrapper = py::wrapper<Base>;
-  PyRenderEngine() : BaseWrapper() {}
+  PyRenderEngine() : Base() {}
 
   void UpdateViewpoint(RigidTransformd const& X_WR) override {
     PYBIND11_OVERLOAD_PURE(void, Base, UpdateViewpoint, X_WR);
@@ -108,6 +107,10 @@ class PyRenderEngine : public py::wrapper<RenderEngine> {
       ImageLabel16I* label_image_out) const override {
     PYBIND11_OVERLOAD_PURE(
         void, Base, DoRenderLabelImage, camera, label_image_out);
+  }
+
+  std::string DoGetParameterYaml() const override {
+    PYBIND11_OVERLOAD(std::string, Base, DoGetParameterYaml);
   }
 
   void SetDefaultLightPosition(Vector3d const& X_DL) override {
@@ -317,6 +320,10 @@ void DoScalarIndependentDefinitions(py::module m) {
             static_cast<RenderLabel (Class::*)() const>(
                 &Class::default_render_label),
             cls_doc.default_render_label.doc)
+        .def("GetParameterYaml",
+            static_cast<std::string (Class::*)() const>(
+                &Class::GetParameterYaml),
+            cls_doc.GetParameterYaml.doc)
         // N.B. We're binding against the trampoline class PyRenderEngine,
         // rather than the direct class RenderEngine, solely for protected
         // helper methods and non-pure virtual functions because we want them

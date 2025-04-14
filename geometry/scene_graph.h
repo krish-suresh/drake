@@ -344,7 +344,6 @@ class SceneGraph final : public systems::LeafSystem<T> {
 
   //@}
 
-
   /** @name       Port management
    Access to SceneGraph's input/output ports. This topic includes
    registration of geometry sources because the input ports are mapped to
@@ -775,6 +774,23 @@ class SceneGraph final : public systems::LeafSystem<T> {
    provided context.  */
   std::string GetRendererTypeName(const systems::Context<T>& context,
                                   const std::string& name) const;
+
+  /** Creates a Yaml-formatted string representing the named engine's
+   parameters. The YAML will be prefixed with the paramater type's name, e.g:
+
+       RenderEngineVtkParams:
+         default_diffuse: [1, 1, 1]
+         ...
+
+   If no registered engine has the given `name`, the returned string is empty.
+   */
+  std::string GetRendererParameterYaml(const std::string& name) const;
+
+  /** systems::Context-query variant of GetRendererParameterYaml(). Rather than
+   querying %SceneGraph's model, it queries the copy of the model stored in the
+   provided context.  */
+  std::string GetRendererParameterYaml(const systems::Context<T>& context,
+                                       const std::string& name) const;
 
   /** Reports the number of renderers registered to this %SceneGraph.  */
   int RendererCount() const;

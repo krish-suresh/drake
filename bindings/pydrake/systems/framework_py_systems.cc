@@ -4,7 +4,6 @@
 
 #include "drake/bindings/pydrake/common/cpp_template_pybind.h"
 #include "drake/bindings/pydrake/common/default_scalars_pybind.h"
-#include "drake/bindings/pydrake/common/deprecation_pybind.h"
 #include "drake/bindings/pydrake/common/eigen_pybind.h"
 #include "drake/bindings/pydrake/common/ref_cycle_pybind.h"
 #include "drake/bindings/pydrake/common/wrap_pybind.h"
@@ -70,9 +69,9 @@ class SystemBasePublic : public SystemBase {
 // Provides a templated 'namespace'.
 template <typename T>
 struct Impl {
-  class PySystem : public py::wrapper<System<T>> {
+  class PySystem : public System<T> {
    public:
-    using Base = py::wrapper<System<T>>;
+    using Base = System<T>;
     using Base::Base;
     // Expose protected methods for binding.
     using Base::DeclareInputPort;
@@ -127,9 +126,9 @@ struct Impl {
   // documentation:
   // http://pybind11.readthedocs.io/en/stable/advanced/classes.html#combining-virtual-functions-and-inheritance
   template <typename LeafSystemBase = LeafSystemPublic>
-  class PyLeafSystemBase : public py::wrapper<LeafSystemBase> {
+  class PyLeafSystemBase : public LeafSystemBase {
    public:
-    using Base = py::wrapper<LeafSystemBase>;
+    using Base = LeafSystemBase;
     using Base::Base;
 
     // Trampoline virtual methods.
@@ -196,9 +195,9 @@ struct Impl {
   // documentation:
   // http://pybind11.readthedocs.io/en/stable/advanced/classes.html#combining-virtual-functions-and-inheritance
   template <typename DiagramBase = DiagramPublic>
-  class PyDiagramBase : public py::wrapper<DiagramBase> {
+  class PyDiagramBase : public DiagramBase {
    public:
-    using Base = py::wrapper<DiagramBase>;
+    using Base = DiagramBase;
     using Base::Base;
 
     SystemBase::GraphvizFragment DoGetGraphvizFragment(
@@ -227,9 +226,9 @@ struct Impl {
     using Base::DoCalcVectorTimeDerivatives;
   };
 
-  class PyVectorSystem : public py::wrapper<VectorSystemPublic> {
+  class PyVectorSystem : public VectorSystemPublic {
    public:
-    using Base = py::wrapper<VectorSystemPublic>;
+    using Base = VectorSystemPublic;
     using Base::Base;
 
     void DoCalcVectorOutput(const Context<T>& context,
@@ -278,7 +277,7 @@ struct Impl {
     }
   };
 
-  class PySystemVisitor : public py::wrapper<SystemVisitor<T>> {
+  class PySystemVisitor : public SystemVisitor<T> {
    public:
     // Trampoline virtual methods.
     void VisitSystem(const System<T>& system) override {
