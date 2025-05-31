@@ -157,10 +157,10 @@ def build(options):
     environment['DRAKE_VERSION'] = options.version
 
     # Create the snopt source archive (and pass along as an environment var).
-    snopt_tgz = os.path.join(resource_root, 'image', 'snopt.tar.gz')
-    environment['SNOPT_PATH'] = snopt_tgz
-    _files_to_remove.append(snopt_tgz)
-    create_snopt_tgz(snopt_path=options.snopt_path, output=snopt_tgz)
+    # snopt_tgz = os.path.join(resource_root, 'image', 'snopt.tar.gz')
+    # environment['SNOPT_PATH'] = snopt_tgz
+    # _files_to_remove.append(snopt_tgz)
+    # create_snopt_tgz(snopt_path=options.snopt_path, output=snopt_tgz)
 
     # Build the wheel(s).
     for python_target in targets_to_build:

@@ -54,7 +54,6 @@ cat > "$build_root/drake.bazelrc" << EOF
 build --disk_cache=$HOME/.cache/drake-wheel-build/bazel/disk_cache
 build --repository_cache=$HOME/.cache/drake-wheel-build/bazel/repository_cache
 build --repo_env=DRAKE_WHEEL=1
-build --repo_env=SNOPT_PATH=${SNOPT_PATH}
 build --config=packaging
 build --define=LCM_INSTALL_JAVA=OFF
 # See tools/wheel/wheel_builder/macos.py for more on this env variable.
@@ -65,6 +64,7 @@ EOF
 # N.B. When you change anything here, also fix wheel/image/build-drake.sh.
 cmake "$git_root" \
     -DWITH_USER_EIGEN=OFF \
+    -DWITH_SNOPT=OFF \
     -DWITH_USER_FMT=OFF \
     -DWITH_USER_SPDLOG=OFF \
     -DWITH_USER_BLAS=OFF \
