@@ -1,0 +1,155 @@
+#pragma once
+
+#include <memory>
+#include <string>
+
+#include "drake/common/default_scalars.h"
+#include "drake/common/drake_assert.h"
+#include "drake/common/drake_copyable.h"
+#include "drake/common/eigen_types.h"
+#include "drake/multibody/tree/frame.h"
+#include "drake/multibody/tree/mobilizer_impl.h"
+#include "drake/multibody/tree/multibody_tree_topology.h"
+#include "drake/systems/framework/context.h"
+
+namespace drake {
+namespace multibody {
+namespace internal {
+
+template <typename T>
+class BallQuaternionMobilizer final : public MobilizerImpl<T, 3, 3> {
+ public:
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(BallQuaternionMobilizer);
+  using MobilizerBase = MobilizerImpl<T, 3, 3>;
+  using MobilizerBase::kNq, MobilizerBase::kNv, MobilizerBase::kNx;
+  template <typename U>
+  using QVector = typename MobilizerBase::template QVector<U>;
+  template <typename U>
+  using VVector = typename MobilizerBase::template VVector<U>;
+  template <typename U>
+  using HMatrix = typename MobilizerBase::template HMatrix<U>;
+
+  BallQuaternionMobilizer(const SpanningForest::Mobod& mobod,
+                   const Frame<T>& inboard_frame_F,
+                   const Frame<T>& outboard_frame_M)
+      : MobilizerBase(mobod, inboard_frame_F, outboard_frame_M) {}
+
+  ~BallQuaternionMobilizer() final;
+
+  std::unique_ptr<BodyNode<T>> CreateBodyNode(
+      const BodyNode<T>* parent_node, const RigidBody<T>* body,
+      const Mobilizer<T>* mobilizer) const final;
+
+  bool has_quaternion_dofs() const final { return true; }
+
+  std::string position_suffix(int position_index_in_mobilizer) const final;
+  std::string velocity_suffix(int velocity_index_in_mobilizer) const final;
+
+  bool can_rotate() const final { return true; }
+  bool can_translate() const final { return false; }
+
+  Vector3<T> get_angles(const systems::Context<T>& context) const;
+
+  const BallQuaternionMobilizer<T>& SetAngles(systems::Context<T>* context,
+                                       const Vector3<T>& angles) const;
+
+  const BallQuaternionMobilizer<T>& SetFromRotationMatrix(
+      systems::Context<T>* context, const math::RotationMatrix<T>& R_FM) const;
+
+  Vector3<T> get_angular_velocity(const systems::Context<T>& context) const;
+
+  const BallQuaternionMobilizer<T>& SetAngularVelocity(systems::Context<T>* context,
+                                                const Vector3<T>& w_FM) const;
+
+  const BallQuaternionMobilizer<T>& SetAngularVelocity(
+      const systems::Context<T>& context, const Vector3<T>& w_FM,
+      systems::State<T>* state) const;
+
+  math::RigidTransform<T> calc_X_FM(const T* q) const {
+    return math::RigidTransform<T>(math::RollPitchYaw<T>(q[0], q[1], q[2]),
+                                   Vector3<T>::Zero());
+  }
+
+  void update_X_FM(const T* q, math::RigidTransform<T>* X_FM) const {
+    DRAKE_ASSERT(q != nullptr && X_FM != nullptr);
+    *X_FM = calc_X_FM(q);
+  }
+
+  SpatialVelocity<T> calc_V_FM(const T*, const T* v) const {
+    const Eigen::Map<const Vector3<T>> w_FM(v);
+    return SpatialVelocity<T>(w_FM, Vector3<T>::Zero());
+  }
+
+  SpatialAcceleration<T> calc_A_FM(const T*, const T*, const T* vdot) const {
+    const Eigen::Map<const Vector3<T>> alpha_FM(vdot);
+    return SpatialAcceleration<T>(alpha_FM, Vector3<T>::Zero());
+  }
+
+  void calc_tau(const T*, const SpatialForce<T>& F_BMo_F, T* tau) const {
+    DRAKE_ASSERT(tau != nullptr);
+    Eigen::Map<VVector<T>> tau_as_vector(tau);
+    const Vector3<T>& t_BMo_F = F_BMo_F.rotational();
+    tau_as_vector = t_BMo_F;
+  }
+
+  math::RigidTransform<T> CalcAcrossMobilizerTransform(
+      const systems::Context<T>& context) const final;
+
+  SpatialVelocity<T> CalcAcrossMobilizerSpatialVelocity(
+      const systems::Context<T>& context,
+      const Eigen::Ref<const VectorX<T>>& v) const final;
+
+  SpatialAcceleration<T> CalcAcrossMobilizerSpatialAcceleration(
+      const systems::Context<T>& context,
+      const Eigen::Ref<const VectorX<T>>& vdot) const override;
+
+  void ProjectSpatialForce(const systems::Context<T>& context,
+                           const SpatialForce<T>& F_Mo_F,
+                           Eigen::Ref<VectorX<T>> tau) const override;
+
+  bool is_velocity_equal_to_qdot() const override { return false; }
+
+ protected:
+  void DoCalcNMatrix(const systems::Context<T>& context,
+                     EigenPtr<MatrixX<T>> N) const final;
+
+  void DoCalcNplusMatrix(const systems::Context<T>& context,
+                         EigenPtr<MatrixX<T>> Nplus) const final;
+
+  // Generally, q̈ = Ṅ(q,q̇)⋅v + N(q)⋅v̇. For this mobilizer, Ṅ is not simple.
+  void DoCalcNDotMatrix(const systems::Context<T>& context,
+                        EigenPtr<MatrixX<T>> Ndot) const final;
+
+  // Generally, v̇ = Ṅ⁺(q,q̇)⋅q̇ + N⁺(q)⋅q̈. For this mobilizer, Ṅ⁺ is not simple.
+  void DoCalcNplusDotMatrix(const systems::Context<T>& context,
+                            EigenPtr<MatrixX<T>> NplusDot) const final;
+
+  void DoMapVelocityToQDot(const systems::Context<T>& context,
+                           const Eigen::Ref<const VectorX<T>>& v,
+                           EigenPtr<VectorX<T>> qdot) const final;
+
+  void DoMapQDotToVelocity(const systems::Context<T>& context,
+                           const Eigen::Ref<const VectorX<T>>& qdot,
+                           EigenPtr<VectorX<T>> v) const final;
+
+  std::unique_ptr<Mobilizer<double>> DoCloneToScalar(
+      const MultibodyTree<double>& tree_clone) const override;
+
+  std::unique_ptr<Mobilizer<AutoDiffXd>> DoCloneToScalar(
+      const MultibodyTree<AutoDiffXd>& tree_clone) const override;
+
+  std::unique_ptr<Mobilizer<symbolic::Expression>> DoCloneToScalar(
+      const MultibodyTree<symbolic::Expression>& tree_clone) const override;
+
+ private:
+  template <typename ToScalar>
+  std::unique_ptr<Mobilizer<ToScalar>> TemplatedDoCloneToScalar(
+      const MultibodyTree<ToScalar>& tree_clone) const;
+};
+
+}  // namespace internal
+}  // namespace multibody
+}  // namespace drake
+
+DRAKE_DECLARE_CLASS_TEMPLATE_INSTANTIATIONS_ON_DEFAULT_SCALARS(
+    class ::drake::multibody::internal::BallQuaternionMobilizer);
