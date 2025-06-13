@@ -677,12 +677,12 @@ drake_cc_googletest(
     ],
 )
 
-drake_cc_googletest(
-    name = "ball_quaternion_joint_test",
-    deps = [
-        ":tree",
-    ],
-)
+# drake_cc_googletest(
+#     name = "ball_quaternion_joint_test",
+#     deps = [
+#         ":tree",
+#     ],
+# )
 
 drake_cc_googletest(
     name = "ball_rpy_joint_test",

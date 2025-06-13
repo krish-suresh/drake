@@ -31,10 +31,12 @@ std::string BallQuaternionMobilizer<T>::position_suffix(
     int position_index_in_mobilizer) const {
   switch (position_index_in_mobilizer) {
     case 0:
-      return "qx";
+      return "qw";
     case 1:
-      return "qy";
+      return "qx";
     case 2:
+      return "qy";
+    case 3:
       return "qz";
   }
   throw std::runtime_error("BallQuaternionMobilizer has only 3 positions.");
@@ -55,25 +57,34 @@ std::string BallQuaternionMobilizer<T>::velocity_suffix(
 }
 
 template <typename T>
-Vector3<T> BallQuaternionMobilizer<T>::get_angles(
+Quaternion<T> BallQuaternionMobilizer<T>::get_quaternion(
     const systems::Context<T>& context) const {
-  return this->get_positions(context);
+  const auto q = this->get_positions(context);
+  DRAKE_ASSERT(q.size() == kNq);
+  return Quaternion<T>(q[0], q[1], q[2], q[3]);
 }
 
 template <typename T>
-const BallQuaternionMobilizer<T>& BallQuaternionMobilizer<T>::SetAngles(
-    systems::Context<T>* context, const Vector3<T>& angles) const {
-  auto q = this->GetMutablePositions(context);
-  q = angles;
+const BallQuaternionMobilizer<T>&
+BallQuaternionMobilizer<T>::SetQuaternion(systems::Context<T>* context,
+                                              const Quaternion<T>& q_FM) const {
+  DRAKE_DEMAND(context != nullptr);
+  SetQuaternion(*context, q_FM, &context->get_mutable_state());
   return *this;
 }
 
 template <typename T>
-const BallQuaternionMobilizer<T>& BallQuaternionMobilizer<T>::SetFromRotationMatrix(
-    systems::Context<T>* context, const math::RotationMatrix<T>& R_FM) const {
-  auto q = this->GetMutablePositions(context);
+const BallQuaternionMobilizer<T>&
+BallQuaternionMobilizer<T>::SetQuaternion(const systems::Context<T>&,
+                                              const Quaternion<T>& q_FM,
+                                              systems::State<T>* state) const {
+  DRAKE_DEMAND(state != nullptr);
+  auto q = this->get_mutable_positions(state);
   DRAKE_ASSERT(q.size() == kNq);
-  q = math::RollPitchYaw<T>(R_FM).vector();
+  // Note: The storage order documented in get_quaternion() is consistent with
+  // the order below, q[0] is the "scalar" part and q[1:3] is the "vector" part.
+  q[0] = q_FM.w();
+  q.template segment<3>(1) = q_FM.vec();
   return *this;
 }
 
@@ -132,6 +143,47 @@ void BallQuaternionMobilizer<T>::ProjectSpatialForce(
 }
 
 template <typename T>
+Eigen::Matrix<T, 4, 3> BallQuaternionMobilizer<T>::CalcLMatrix(
+    const Quaternion<T>& q_FM) {
+  const T qs = q_FM.w();             // The scalar component.
+  const Vector3<T> qv = q_FM.vec();  // The vector component.
+  const Vector3<T> mqv = -qv;        // minus qv.
+
+  return (Eigen::Matrix<T, 4, 3>() << mqv.transpose(), qs, qv.z(), mqv.y(),
+          mqv.z(), qs, qv.x(), qv.y(), mqv.x(), qs)
+      .finished();
+}
+
+template <typename T>
+Eigen::Matrix<T, 4, 3>
+BallQuaternionMobilizer<T>::AngularVelocityToQuaternionRateMatrix(
+    const Quaternion<T>& q_FM) {
+  return CalcLMatrix(
+      {q_FM.w() / 2.0, q_FM.x() / 2.0, q_FM.y() / 2.0, q_FM.z() / 2.0});
+}
+
+template <typename T>
+Eigen::Matrix<T, 3, 4>
+BallQuaternionMobilizer<T>::QuaternionRateToAngularVelocityMatrix(
+    const Quaternion<T>& q_FM) {
+  const T q_norm = q_FM.norm();
+  const Vector4<T> q_FM_tilde =
+      Vector4<T>(q_FM.w(), q_FM.x(), q_FM.y(), q_FM.z()) / q_norm;
+
+  // Gradient of the normalized quaternion with respect to the unnormalized
+  // generalized coordinates:
+  const Matrix4<T> dqnorm_dq =
+      (Matrix4<T>::Identity() - q_FM_tilde * q_FM_tilde.transpose()) / q_norm;
+
+  return CalcLMatrix({2.0 * q_FM_tilde[0], 2.0 * q_FM_tilde[1],
+                      2.0 * q_FM_tilde[2], 2.0 * q_FM_tilde[3]})
+             .transpose() *
+         dqnorm_dq;
+}
+
+
+
+template <typename T>
 void BallQuaternionMobilizer<T>::DoCalcNMatrix(const systems::Context<T>& context,
                                         EigenPtr<MatrixX<T>> N) const {
   // The matrix N(q) relates q̇ to v as q̇ = N(q) * v, where q̇ = [ṙ, ṗ, ẏ]ᵀ and
@@ -144,31 +196,6 @@ void BallQuaternionMobilizer<T>::DoCalcNMatrix(const systems::Context<T>& contex
   //
   // Note: N(q) is singular for p = π/2 + kπ, for k = ±1, ±2, ...
   // See related code and comments in MapVelocityToQdot().
-
-  using std::abs;
-  using std::cos;
-  using std::sin;
-  const Vector3<T> angles = get_angles(context);
-  const T cp = cos(angles[1]);
-  if (abs(cp) < 1.0e-3) {
-    const char* function_name_less_Do = __func__ + 2;
-    ThrowSinceCosPitchIsNearZero(angles[1], function_name_less_Do);
-  }
-  const T sp = sin(angles[1]);
-  const T sy = sin(angles[2]);
-  const T cy = cos(angles[2]);
-  const T cpi = 1.0 / cp;
-  const T cy_x_cpi = cy * cpi;
-  const T sy_x_cpi = sy * cpi;
-
-  // ṙ = (cos(y) * w0 + sin(y) * w1) / cos(p)
-  N->row(0) << cy_x_cpi, sy_x_cpi, 0.0;
-
-  // ṗ = -sin(y) * w0 + cos(y) * w1
-  N->row(1) << -sy, cy, 0.0;
-
-  // ẏ = sin(p) * ṙ + w2
-  N->row(2) << cy_x_cpi * sp, sy_x_cpi * sp, 1.0;
 }
 
 template <typename T>
@@ -182,14 +209,6 @@ void BallQuaternionMobilizer<T>::DoCalcNplusMatrix(const systems::Context<T>& co
   // | ω1 | = | sin(y) * cos(p),   cos(y),  0 | | ṗ |
   // ⌊ ω2 ⌋   ⌊         -sin(p),        0,  1 ⌋ ⌊ ẏ ⌋
   //
-  // See related code and comments in MapQDotToVelocity().
-  const Vector3<T> angles = get_angles(context);
-  const T sp = sin(angles[1]);
-  const T cp = cos(angles[1]);
-  const T sy = sin(angles[2]);
-  const T cy = cos(angles[2]);
-
-  *Nplus << cy * cp, -sy, 0.0, sy * cp, cy, 0.0, -sp, 0.0, 1.0;
 }
 
 template <typename T>
@@ -218,41 +237,6 @@ void BallQuaternionMobilizer<T>::DoCalcNDotMatrix(const systems::Context<T>& con
   // Ṅ[2, 1] = sy ṗ + sp² sy/cp² ṗ + sp cy/cp ẏ
   //         =            sy/cp² ṗ + sp cy/cp ẏ.
 
-  using std::cos;
-  using std::sin;
-  const Vector3<T> angles = get_angles(context);
-  const T cp = cos(angles[1]);
-  const T sp = sin(angles[1]);
-  const T sy = sin(angles[2]);
-  const T cy = cos(angles[2]);
-  if (abs(cp) < 1.0e-3) {
-    const char* function_name_less_Do = __func__ + 2;
-    ThrowSinceCosPitchIsNearZero(angles[1], function_name_less_Do);
-  }
-  const T cpi = 1.0 / cp;
-  const T cpiSqr = cpi * cpi;
-
-  // Calculate time-derivative of roll, pitch, and yaw angles.
-  const Vector3<T> v = get_angular_velocity(context);
-  Vector3<T> qdot;
-  DoMapVelocityToQDot(context, v, &qdot);
-  const T& pdot = qdot(1);  // time derivative of pitch angle.
-  const T& ydot = qdot(2);  // time derivative of yaw angle.
-  const T sp_pdot = sp * pdot;
-  const T cp_ydot = cp * ydot;
-  const T cpiSqr_pdot = cpiSqr * pdot;
-  const T sp_cpi_ydot = sp * cpi * ydot;
-
-  // The elements below are in column order (like Eigen).
-  Ndot->coeffRef(0, 0) = (cy * sp_pdot - sy * cp_ydot) * cpiSqr;
-  Ndot->coeffRef(1, 0) = -cy * ydot;
-  Ndot->coeffRef(2, 0) = cy * cpiSqr_pdot - sy * sp_cpi_ydot;
-  Ndot->coeffRef(0, 1) = (sy * sp_pdot + cy * cp_ydot) * cpiSqr;
-  Ndot->coeffRef(1, 1) = -sy * ydot;
-  Ndot->coeffRef(2, 1) = sy * cpiSqr_pdot + cy * sp_cpi_ydot;
-  Ndot->coeffRef(0, 2) = 0;
-  Ndot->coeffRef(1, 2) = 0;
-  Ndot->coeffRef(2, 2) = 0;
 }
 
 template <typename T>
@@ -274,41 +258,6 @@ void BallQuaternionMobilizer<T>::DoCalcNplusDotMatrix(
   //           ⌊              -cp ṗ,       0,   0 ⌋
   //
   // where cp = cos(p), sp = sin(p), cy = cos(y), sy = sin(y).
-  using std::cos;
-  using std::sin;
-  const Vector3<T> angles = get_angles(context);
-  const T cp = cos(angles[1]);
-  const T sp = sin(angles[1]);
-  const T sy = sin(angles[2]);
-  const T cy = cos(angles[2]);
-
-  // Throw an exception with the proper function name if a singularity would be
-  // encountered in DoMapVelocityToQDot().
-  if (abs(cp) < 1.0e-3) {
-    const char* function_name_less_Do = __func__ + 2;
-    ThrowSinceCosPitchIsNearZero(angles[1], function_name_less_Do);
-  }
-
-  // Calculate time-derivative of roll, pitch, and yaw angles.
-  const Vector3<T> v = get_angular_velocity(context);
-  Vector3<T> qdot;
-  DoMapVelocityToQDot(context, v, &qdot);
-  const T& pdot = qdot(1);  // time derivative of pitch angle.
-  const T& ydot = qdot(2);  // time derivative of yaw angle.
-  const T sp_pdot = sp * pdot;
-  const T cy_ydot = cy * ydot;
-  const T sy_ydot = sy * ydot;
-
-  // The elements below are in column order (like Eigen).
-  NplusDot->coeffRef(0, 0) = -sy_ydot * cp - cy * sp_pdot;
-  NplusDot->coeffRef(1, 0) = cy_ydot * cp - sy * sp_pdot;
-  NplusDot->coeffRef(2, 0) = -cp * pdot;
-  NplusDot->coeffRef(0, 1) = -cy_ydot;
-  NplusDot->coeffRef(1, 1) = -sy_ydot;
-  NplusDot->coeffRef(2, 1) = 0;
-  NplusDot->coeffRef(0, 2) = 0;
-  NplusDot->coeffRef(1, 2) = 0;
-  NplusDot->coeffRef(2, 2) = 0;
 }
 
 template <typename T>
@@ -339,37 +288,6 @@ void BallQuaternionMobilizer<T>::DoMapVelocityToQDot(
   // [Mitiguy August 2019] Mitiguy, P., 2019. Advanced Dynamics & Motion
   //                       Simulation.
 
-  using std::abs;
-  using std::cos;
-  using std::sin;
-  const Vector3<T> angles = get_angles(context);
-  const T sp = sin(angles[1]);
-  const T cp = cos(angles[1]);
-  const T sy = sin(angles[2]);
-  const T cy = cos(angles[2]);
-  if (abs(cp) < 1.0e-3) {
-    const char* function_name_less_Do = __func__ + 2;
-    ThrowSinceCosPitchIsNearZero(angles[1], function_name_less_Do);
-  }
-  const T cpi = 1.0 / cp;
-
-  // Although we can calculate q̇ = N(q) * v, it is more efficient to implicitly
-  // invert the simpler equation v = N⁺(q) * q̇, whose matrix form is
-  //
-  // ⌈ ω0 ⌉   ⌈ cos(y) * cos(p),  -sin(y),  0 ⌉ ⌈ ṙ ⌉
-  // | ω1 | = | sin(y) * cos(p),   cos(y),  0 | | ṗ |
-  // ⌊ ω2 ⌋   ⌊         -sin(p),        0,  1 ⌋ ⌊ ẏ ⌋
-  //
-  // Namely, the first two equations are used to solve for ṙ and ṗ, then the
-  // third equation is used to solve for ẏ in terms of just ṙ and w2:
-  // ṙ = (cos(y) * w0 + sin(y) * w1) / cos(p)
-  // ṗ = -sin(y) * w0 + cos(y) * w1
-  // ẏ = sin(p) * ṙ + w2
-  const T& w0 = v[0];
-  const T& w1 = v[1];
-  const T& w2 = v[2];
-  const T rdot = (cy * w0 + sy * w1) * cpi;
-  *qdot = Vector3<T>(rdot, -sy * w0 + cy * w1, sp * rdot + w2);
 }
 
 template <typename T>
@@ -398,24 +316,6 @@ void BallQuaternionMobilizer<T>::DoMapQDotToVelocity(
   // [Mitiguy August 2019] Mitiguy, P., 2019. Advanced Dynamics & Motion
   //                       Simulation.
 
-  using std::cos;
-  using std::sin;
-  const Vector3<T> angles = get_angles(context);
-  const T& rdot = qdot[0];
-  const T& pdot = qdot[1];
-  const T& ydot = qdot[2];
-
-  const T sp = sin(angles[1]);
-  const T cp = cos(angles[1]);
-  const T sy = sin(angles[2]);
-  const T cy = cos(angles[2]);
-  const T cp_x_rdot = cp * rdot;
-
-  // Compute the product v = N⁺(q) * q̇ element-by-element to leverage the zeros
-  // in N⁺(q) -- which is more efficient than matrix multiplication N⁺(q) * q̇.
-  *v = Vector3<T>(cy * cp_x_rdot - sy * pdot, /*+ 0 * ydot*/
-                  sy * cp_x_rdot + cy * pdot, /*+ 0 * ydot*/
-                  -sp * rdot /*+   0 * pdot */ + ydot);
 }
 
 template <typename T>

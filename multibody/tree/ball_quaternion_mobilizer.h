@@ -17,10 +17,10 @@ namespace multibody {
 namespace internal {
 
 template <typename T>
-class BallQuaternionMobilizer final : public MobilizerImpl<T, 3, 3> {
+class BallQuaternionMobilizer final : public MobilizerImpl<T, 4, 3> {
  public:
   DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(BallQuaternionMobilizer);
-  using MobilizerBase = MobilizerImpl<T, 3, 3>;
+  using MobilizerBase = MobilizerImpl<T, 4, 3>;
   using MobilizerBase::kNq, MobilizerBase::kNv, MobilizerBase::kNx;
   template <typename U>
   using QVector = typename MobilizerBase::template QVector<U>;
@@ -48,13 +48,23 @@ class BallQuaternionMobilizer final : public MobilizerImpl<T, 3, 3> {
   bool can_rotate() const final { return true; }
   bool can_translate() const final { return false; }
 
-  Vector3<T> get_angles(const systems::Context<T>& context) const;
+  Quaternion<T> get_quaternion(const systems::Context<T>& context) const;
 
-  const BallQuaternionMobilizer<T>& SetAngles(systems::Context<T>* context,
-                                       const Vector3<T>& angles) const;
+//   void set_random_quaternion_distribution(
+//       const Eigen::Quaternion<symbolic::Expression>& q_FM);
+
+  const BallQuaternionMobilizer<T>& SetQuaternion(
+      systems::Context<T>* context, const Quaternion<T>& q_FM) const;
+
+  const BallQuaternionMobilizer<T>& SetQuaternion(
+      const systems::Context<T>& context, const Quaternion<T>& q_FM,
+      systems::State<T>* state) const;
 
   const BallQuaternionMobilizer<T>& SetFromRotationMatrix(
-      systems::Context<T>* context, const math::RotationMatrix<T>& R_FM) const;
+      systems::Context<T>* context, const math::RotationMatrix<T>& R_FM) const {
+        const Eigen::Quaternion<T> q_FM = R_FM.ToQuaternion();
+        return SetQuaternion(context, q_FM);
+    }
 
   Vector3<T> get_angular_velocity(const systems::Context<T>& context) const;
 
@@ -66,7 +76,8 @@ class BallQuaternionMobilizer final : public MobilizerImpl<T, 3, 3> {
       systems::State<T>* state) const;
 
   math::RigidTransform<T> calc_X_FM(const T* q) const {
-    return math::RigidTransform<T>(math::RollPitchYaw<T>(q[0], q[1], q[2]),
+    DRAKE_ASSERT(q != nullptr);
+    return math::RigidTransform<T>(Eigen::Quaternion<T>(q[0], q[1], q[2], q[3]),
                                    Vector3<T>::Zero());
   }
 
@@ -142,6 +153,24 @@ class BallQuaternionMobilizer final : public MobilizerImpl<T, 3, 3> {
       const MultibodyTree<symbolic::Expression>& tree_clone) const override;
 
  private:
+  // Helper to compute the kinematic map N(q). L ∈ ℝ⁴ˣ³.
+  static Eigen::Matrix<T, 4, 3> CalcLMatrix(const Quaternion<T>& q);
+  // Helper to compute the kinematic map N(q) from angular velocity to
+  // quaternion time derivative for which q̇_WB = N(q)⋅w_WB.
+  // With L given by CalcLMatrix we have:
+  // N(q) = L(q_FM/2)
+  static Eigen::Matrix<T, 4, 3> AngularVelocityToQuaternionRateMatrix(
+      const Quaternion<T>& q);
+
+  // Helper to compute the kinematic map N⁺(q) from quaternion time derivative
+  // to angular velocity for which w_WB = N⁺(q)⋅q̇_WB.
+  // This method can take a non unity quaternion q_tilde such that
+  // w_WB = N⁺(q_tilde)⋅q̇_tilde_WB also holds true.
+  // With L given by CalcLMatrix we have:
+  // N⁺(q) = L(2 q_FM)ᵀ
+  static Eigen::Matrix<T, 3, 4> QuaternionRateToAngularVelocityMatrix(
+      const Quaternion<T>& q);
+
   template <typename ToScalar>
   std::unique_ptr<Mobilizer<ToScalar>> TemplatedDoCloneToScalar(
       const MultibodyTree<ToScalar>& tree_clone) const;

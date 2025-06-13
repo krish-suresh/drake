@@ -29,9 +29,9 @@ class BallQuaternionJoint final : public Joint<T> {
       : Joint<T>(name, frame_on_parent, frame_on_child,
                  VectorX<double>::Constant(3, damping),
                  VectorX<double>::Constant(
-                     3, -std::numeric_limits<double>::infinity()),
+                     4, -std::numeric_limits<double>::infinity()),
                  VectorX<double>::Constant(
-                     3, std::numeric_limits<double>::infinity()),
+                     4, std::numeric_limits<double>::infinity()),
                  VectorX<double>::Constant(
                      3, -std::numeric_limits<double>::infinity()),
                  VectorX<double>::Constant(
@@ -41,6 +41,8 @@ class BallQuaternionJoint final : public Joint<T> {
                  VectorX<double>::Constant(
                      3, std::numeric_limits<double>::infinity())) {
     DRAKE_THROW_UNLESS(damping >= 0);
+    
+    this->set_default_quaternion(Quaternion<double>::Identity());
   }
 
   ~BallQuaternionJoint() final;
@@ -51,16 +53,30 @@ class BallQuaternionJoint final : public Joint<T> {
     return this->default_damping_vector()[0];
   }
 
-  Vector3<T> get_angles(const Context<T>& context) const {
-    return get_mobilizer().get_angles(context);
+  Quaternion<T> get_quaternion(const systems::Context<T>& context) const {
+    return get_mobilizer().get_quaternion(context);
   }
 
-  const BallQuaternionJoint<T>& set_angles(Context<T>* context,
-                                    const Vector3<T>& angles) const {
-    get_mobilizer().SetAngles(context, angles);
+  const BallQuaternionJoint<T>& SetQuaternion(
+      systems::Context<T>* context, const Quaternion<T>& q_FM) const {
+    get_mobilizer().SetQuaternion(context, q_FM);
     return *this;
   }
 
+  Vector3<T> get_angular_velocity(const systems::Context<T>& context) const {
+    return get_mobilizer().get_angular_velocity(context);
+  }
+
+  void set_default_quaternion(const Quaternion<double>& q_FM) {
+    VectorX<double> default_positions = this->default_positions();
+    // @note we store the quaternion components consistently with
+    // `QuaternionFloatingMobilizer<T>::get_quaternion()`
+    default_positions[0] = q_FM.w();
+    default_positions[1] = q_FM.x();
+    default_positions[2] = q_FM.y();
+    default_positions[3] = q_FM.z();
+    this->set_default_positions(default_positions);
+  }
  protected:
   void DoAddInOneForce(const systems::Context<T>&, int, const T&,
                        MultibodyForces<T>*) const final {
@@ -79,6 +95,33 @@ class BallQuaternionJoint final : public Joint<T> {
   }
 
  private:
+  int do_get_velocity_start() const final {
+    return get_mobilizer().velocity_start_in_v();
+  }
+
+  int do_get_num_velocities() const final { return 3; }
+
+  int do_get_position_start() const final {
+    return get_mobilizer().position_start_in_q();
+  }
+
+  int do_get_num_positions() const final { return 4; }
+
+  std::string do_get_position_suffix(int index) const final {
+    return get_mobilizer().position_suffix(index);
+  }
+
+  std::string do_get_velocity_suffix(int index) const final {
+    return get_mobilizer().velocity_suffix(index);
+  }
+
+  void do_set_default_positions(
+      const VectorX<double>& default_positions) final {
+    if (this->has_mobilizer()) {
+      get_mutable_mobilizer().set_default_position(default_positions);
+    }
+  }
+
   // Joint<T> overrides:
   std::unique_ptr<internal::Mobilizer<T>> MakeMobilizerForJoint(
       const internal::SpanningForest::Mobod& mobod,

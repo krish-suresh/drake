@@ -66,6 +66,19 @@ std::unique_ptr<Joint<T>> BallQuaternionJoint<T>::DoShallowClone() const {
       this->default_damping());
 }
 
+template <typename T>
+std::unique_ptr<internal::Mobilizer<T>> BallQuaternionJoint<T>::MakeMobilizerForJoint(
+    const internal::SpanningForest::Mobod& mobod,
+    internal::MultibodyTree<T>*) const {
+  const auto [inboard_frame, outboard_frame] =
+      this->tree_frames(mobod.is_reversed());
+  // TODO(sherm1) The mobilizer needs to be reversed, not just the frames.
+  auto ballquat_mobilizer = std::make_unique<internal::BallQuaternionMobilizer<T>>(
+      mobod, *inboard_frame, *outboard_frame);
+  ballquat_mobilizer->set_default_position(this->default_positions());
+  return ballquat_mobilizer;
+}
+
 }  // namespace multibody
 }  // namespace drake
 

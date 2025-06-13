@@ -8,16 +8,16 @@
 #include "drake/common/test_utilities/expect_throws_message.h"
 #include "drake/math/rigid_transform.h"
 #include "drake/math/rotation_matrix.h"
-#include "drake/multibody/tree/ball_quaternion_joint.h"
 #include "drake/multibody/tree/multibody_tree-inl.h"
+#include "drake/multibody/tree/ball_quaternion_joint.h"
 #include "drake/multibody/tree/test/mobilizer_tester.h"
-#include "drake/systems/framework/context.h"
 
 namespace drake {
 namespace multibody {
 namespace internal {
 namespace {
 
+using Eigen::Quaterniond;
 using Eigen::Matrix3d;
 using Eigen::Vector3d;
 using math::RigidTransformd;
@@ -27,7 +27,7 @@ using std::make_unique;
 using std::unique_ptr;
 using systems::Context;
 
-constexpr double kTolerance = 10 * std::numeric_limits<double>::epsilon();
+// constexpr double kTolerance = 10 * std::numeric_limits<double>::epsilon();
 
 class BallQuaternionMobilizerTest : public MobilizerTester {
  public:
