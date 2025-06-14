@@ -75,6 +75,7 @@ auto MobilizerImpl<T, nq, nv>::DoSpatialVelocityToVelocities(
   template class MobilizerImpl<T, 1, 1>; \
   template class MobilizerImpl<T, 2, 2>; \
   template class MobilizerImpl<T, 3, 3>; \
+  template class MobilizerImpl<T, 4, 3>; \
   template class MobilizerImpl<T, 6, 6>; \
   template class MobilizerImpl<T, 7, 6>;
 
