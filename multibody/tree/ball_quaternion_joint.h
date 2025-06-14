@@ -9,7 +9,7 @@
 #include "drake/common/drake_copyable.h"
 #include "drake/multibody/tree/joint.h"
 #include "drake/multibody/tree/multibody_forces.h"
-#include "drake/multibody/tree/ball_quaternion_mobilizer.h"
+#include "drake/multibody/tree/quaternion_ball_mobilizer.h"
 
 
 namespace drake {
@@ -141,13 +141,13 @@ class BallQuaternionJoint final : public Joint<T> {
   template <typename>
   friend class BallQuaternionJoint;
 
-  const internal::BallQuaternionMobilizer<T>& get_mobilizer() const {
-    return this->template get_mobilizer_downcast<internal::BallQuaternionMobilizer>();
+  const internal::QuaternionBallMobilizer<T>& get_mobilizer() const {
+    return this->template get_mobilizer_downcast<internal::QuaternionBallMobilizer>();
   }
 
-  internal::BallQuaternionMobilizer<T>& get_mutable_mobilizer() {
+  internal::QuaternionBallMobilizer<T>& get_mutable_mobilizer() {
     return this
-        ->template get_mutable_mobilizer_downcast<internal::BallQuaternionMobilizer>();
+        ->template get_mutable_mobilizer_downcast<internal::QuaternionBallMobilizer>();
   }
 
   template <typename ToScalar>

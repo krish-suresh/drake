@@ -1,4 +1,4 @@
-#include "drake/multibody/tree/ball_quaternion_mobilizer.h"
+#include "drake/multibody/tree/quaternion_ball_mobilizer.h"
 
 #include <gtest/gtest.h>
 
@@ -29,19 +29,19 @@ using systems::Context;
 
 // constexpr double kTolerance = 10 * std::numeric_limits<double>::epsilon();
 
-class BallQuaternionMobilizerTest : public MobilizerTester {
+class QuaternionBallMobilizerTest : public MobilizerTester {
  public:
   void SetUp() override {
-    mobilizer_ = &AddJointAndFinalize<BallQuaternionJoint, BallQuaternionMobilizer>(
+    mobilizer_ = &AddJointAndFinalize<BallQuaternionJoint, QuaternionBallMobilizer>(
         std::make_unique<BallQuaternionJoint<double>>(
             "joint0", tree().world_body().body_frame(), body_->body_frame()));
   }
 
  protected:
-  const BallQuaternionMobilizer<double>* mobilizer_{nullptr};
+  const QuaternionBallMobilizer<double>* mobilizer_{nullptr};
 };
 
-TEST_F(BallQuaternionMobilizerTest, CanRotateOrTranslate) {
+TEST_F(QuaternionBallMobilizerTest, CanRotateOrTranslate) {
   EXPECT_TRUE(mobilizer_->can_rotate());
   EXPECT_FALSE(mobilizer_->can_translate());
 }

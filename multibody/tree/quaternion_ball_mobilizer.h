@@ -17,9 +17,9 @@ namespace multibody {
 namespace internal {
 
 template <typename T>
-class BallQuaternionMobilizer final : public MobilizerImpl<T, 4, 3> {
+class QuaternionBallMobilizer final : public MobilizerImpl<T, 4, 3> {
  public:
-  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(BallQuaternionMobilizer);
+  DRAKE_NO_COPY_NO_MOVE_NO_ASSIGN(QuaternionBallMobilizer);
   using MobilizerBase = MobilizerImpl<T, 4, 3>;
   using MobilizerBase::kNq, MobilizerBase::kNv, MobilizerBase::kNx;
   template <typename U>
@@ -29,12 +29,12 @@ class BallQuaternionMobilizer final : public MobilizerImpl<T, 4, 3> {
   template <typename U>
   using HMatrix = typename MobilizerBase::template HMatrix<U>;
 
-  BallQuaternionMobilizer(const SpanningForest::Mobod& mobod,
+  QuaternionBallMobilizer(const SpanningForest::Mobod& mobod,
                    const Frame<T>& inboard_frame_F,
                    const Frame<T>& outboard_frame_M)
       : MobilizerBase(mobod, inboard_frame_F, outboard_frame_M) {}
 
-  ~BallQuaternionMobilizer() final;
+  ~QuaternionBallMobilizer() final;
 
   std::unique_ptr<BodyNode<T>> CreateBodyNode(
       const BodyNode<T>* parent_node, const RigidBody<T>* body,
@@ -53,14 +53,14 @@ class BallQuaternionMobilizer final : public MobilizerImpl<T, 4, 3> {
 //   void set_random_quaternion_distribution(
 //       const Eigen::Quaternion<symbolic::Expression>& q_FM);
 
-  const BallQuaternionMobilizer<T>& SetQuaternion(
+  const QuaternionBallMobilizer<T>& SetQuaternion(
       systems::Context<T>* context, const Quaternion<T>& q_FM) const;
 
-  const BallQuaternionMobilizer<T>& SetQuaternion(
+  const QuaternionBallMobilizer<T>& SetQuaternion(
       const systems::Context<T>& context, const Quaternion<T>& q_FM,
       systems::State<T>* state) const;
 
-  const BallQuaternionMobilizer<T>& SetFromRotationMatrix(
+  const QuaternionBallMobilizer<T>& SetFromRotationMatrix(
       systems::Context<T>* context, const math::RotationMatrix<T>& R_FM) const {
         const Eigen::Quaternion<T> q_FM = R_FM.ToQuaternion();
         return SetQuaternion(context, q_FM);
@@ -68,10 +68,10 @@ class BallQuaternionMobilizer final : public MobilizerImpl<T, 4, 3> {
 
   Vector3<T> get_angular_velocity(const systems::Context<T>& context) const;
 
-  const BallQuaternionMobilizer<T>& SetAngularVelocity(systems::Context<T>* context,
+  const QuaternionBallMobilizer<T>& SetAngularVelocity(systems::Context<T>* context,
                                                 const Vector3<T>& w_FM) const;
 
-  const BallQuaternionMobilizer<T>& SetAngularVelocity(
+  const QuaternionBallMobilizer<T>& SetAngularVelocity(
       const systems::Context<T>& context, const Vector3<T>& w_FM,
       systems::State<T>* state) const;
 
@@ -181,4 +181,4 @@ class BallQuaternionMobilizer final : public MobilizerImpl<T, 4, 3> {
 }  // namespace drake
 
 DRAKE_DECLARE_CLASS_TEMPLATE_INSTANTIATIONS_ON_DEFAULT_SCALARS(
-    class ::drake::multibody::internal::BallQuaternionMobilizer);
+    class ::drake::multibody::internal::QuaternionBallMobilizer);

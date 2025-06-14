@@ -73,7 +73,7 @@ std::unique_ptr<internal::Mobilizer<T>> BallQuaternionJoint<T>::MakeMobilizerFor
   const auto [inboard_frame, outboard_frame] =
       this->tree_frames(mobod.is_reversed());
   // TODO(sherm1) The mobilizer needs to be reversed, not just the frames.
-  auto ballquat_mobilizer = std::make_unique<internal::BallQuaternionMobilizer<T>>(
+  auto ballquat_mobilizer = std::make_unique<internal::QuaternionBallMobilizer<T>>(
       mobod, *inboard_frame, *outboard_frame);
   ballquat_mobilizer->set_default_position(this->default_positions());
   return ballquat_mobilizer;

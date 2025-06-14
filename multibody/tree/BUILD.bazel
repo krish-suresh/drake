@@ -85,7 +85,7 @@ drake_cc_library(
 drake_cc_library(
     name = "multibody_tree_core",
     srcs = [
-        "ball_quaternion_mobilizer.cc",
+        "quaternion_ball_mobilizer.cc",
         "ball_quaternion_joint.cc",
         "ball_rpy_joint.cc",
         "body_node.cc",
@@ -134,7 +134,7 @@ drake_cc_library(
         "weld_mobilizer.cc",
     ],
     hdrs = [
-        "ball_quaternion_mobilizer.h",
+        "quaternion_ball_mobilizer.h",
         "ball_quaternion_joint.h",
         "ball_rpy_joint.h",
         "body_node.h",
@@ -532,7 +532,7 @@ drake_cc_googletest(
 )
 
 drake_cc_googletest(
-    name = "ball_quaternion_mobilizer_test",
+    name = "quaternion_ball_mobilizer_test",
     deps = [
         ":mobilizer_tester",
         ":tree",
