@@ -58,7 +58,7 @@ TEST_F(QuaternionBallMobilizerTest, StateAccess) {
   // Set mobilizer orientation using a rotation matrix.
   const RotationMatrixd R_WB(RollPitchYawd(M_PI / 5, -M_PI / 7, M_PI / 3));
   const Quaterniond Q_WB = R_WB.ToQuaternion();
-  mobilizer_->SetFromRotationMatrix(context_.get(), R_WB);
+  mobilizer_->SetOrientation(context_.get(), R_WB);
   EXPECT_TRUE(CompareMatrices(mobilizer_->get_quaternion(*context_).coeffs(),
                               Q_WB.coeffs(), kTolerance,
                               MatrixCompareType::relative));

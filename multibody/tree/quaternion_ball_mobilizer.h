@@ -60,7 +60,7 @@ class QuaternionBallMobilizer final : public MobilizerImpl<T, 4, 3> {
       const systems::Context<T>& context, const Quaternion<T>& q_FM,
       systems::State<T>* state) const;
 
-  const QuaternionBallMobilizer<T>& SetFromRotationMatrix(
+  const QuaternionBallMobilizer<T>& SetOrientation(
       systems::Context<T>* context, const math::RotationMatrix<T>& R_FM) const {
     const Eigen::Quaternion<T> q_FM = R_FM.ToQuaternion();
     return SetQuaternion(context, q_FM);

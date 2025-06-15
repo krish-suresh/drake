@@ -19,7 +19,8 @@ const std::string& BallQuaternionJoint<T>::type_name() const {
 
 template <typename T>
 template <typename ToScalar>
-std::unique_ptr<Joint<ToScalar>> BallQuaternionJoint<T>::TemplatedDoCloneToScalar(
+std::unique_ptr<Joint<ToScalar>>
+BallQuaternionJoint<T>::TemplatedDoCloneToScalar(
     const internal::MultibodyTree<ToScalar>& tree_clone) const {
   const Frame<ToScalar>& frame_on_parent_body_clone =
       tree_clone.get_variant(this->frame_on_parent());
@@ -54,7 +55,8 @@ std::unique_ptr<Joint<AutoDiffXd>> BallQuaternionJoint<T>::DoCloneToScalar(
 }
 
 template <typename T>
-std::unique_ptr<Joint<symbolic::Expression>> BallQuaternionJoint<T>::DoCloneToScalar(
+std::unique_ptr<Joint<symbolic::Expression>>
+BallQuaternionJoint<T>::DoCloneToScalar(
     const internal::MultibodyTree<symbolic::Expression>& tree_clone) const {
   return TemplatedDoCloneToScalar(tree_clone);
 }
@@ -67,14 +69,16 @@ std::unique_ptr<Joint<T>> BallQuaternionJoint<T>::DoShallowClone() const {
 }
 
 template <typename T>
-std::unique_ptr<internal::Mobilizer<T>> BallQuaternionJoint<T>::MakeMobilizerForJoint(
+std::unique_ptr<internal::Mobilizer<T>>
+BallQuaternionJoint<T>::MakeMobilizerForJoint(
     const internal::SpanningForest::Mobod& mobod,
     internal::MultibodyTree<T>*) const {
   const auto [inboard_frame, outboard_frame] =
       this->tree_frames(mobod.is_reversed());
   // TODO(sherm1) The mobilizer needs to be reversed, not just the frames.
-  auto ballquat_mobilizer = std::make_unique<internal::QuaternionBallMobilizer<T>>(
-      mobod, *inboard_frame, *outboard_frame);
+  auto ballquat_mobilizer =
+      std::make_unique<internal::QuaternionBallMobilizer<T>>(
+          mobod, *inboard_frame, *outboard_frame);
   ballquat_mobilizer->set_default_position(this->default_positions());
   return ballquat_mobilizer;
 }

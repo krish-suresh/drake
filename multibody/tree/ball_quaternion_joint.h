@@ -11,7 +11,6 @@
 #include "drake/multibody/tree/multibody_forces.h"
 #include "drake/multibody/tree/quaternion_ball_mobilizer.h"
 
-
 namespace drake {
 namespace multibody {
 template <typename T>
@@ -25,7 +24,7 @@ class BallQuaternionJoint final : public Joint<T> {
   static const char kTypeName[];
 
   BallQuaternionJoint(const std::string& name, const Frame<T>& frame_on_parent,
-               const Frame<T>& frame_on_child, double damping = 0)
+                      const Frame<T>& frame_on_child, double damping = 0)
       : Joint<T>(name, frame_on_parent, frame_on_child,
                  VectorX<double>::Constant(3, damping),
                  VectorX<double>::Constant(
@@ -41,7 +40,7 @@ class BallQuaternionJoint final : public Joint<T> {
                  VectorX<double>::Constant(
                      3, std::numeric_limits<double>::infinity())) {
     DRAKE_THROW_UNLESS(damping >= 0);
-    
+
     this->set_default_quaternion(Quaternion<double>::Identity());
   }
 
@@ -49,22 +48,32 @@ class BallQuaternionJoint final : public Joint<T> {
 
   const std::string& type_name() const final;
 
-  double default_damping() const {
-    return this->default_damping_vector()[0];
-  }
+  double default_damping() const { return this->default_damping_vector()[0]; }
 
   Quaternion<T> get_quaternion(const systems::Context<T>& context) const {
     return get_mobilizer().get_quaternion(context);
   }
 
-  const BallQuaternionJoint<T>& SetQuaternion(
-      systems::Context<T>* context, const Quaternion<T>& q_FM) const {
+  const BallQuaternionJoint<T>& SetQuaternion(systems::Context<T>* context,
+                                              const Quaternion<T>& q_FM) const {
     get_mobilizer().SetQuaternion(context, q_FM);
+    return *this;
+  }
+
+  const BallQuaternionJoint<T>& SetOrientation(
+      systems::Context<T>* context, const math::RotationMatrix<T>& R_FM) const {
+    get_mobilizer().SetOrientation(context, R_FM);
     return *this;
   }
 
   Vector3<T> get_angular_velocity(const systems::Context<T>& context) const {
     return get_mobilizer().get_angular_velocity(context);
+  }
+
+  const BallQuaternionJoint<T>& set_angular_velocity(
+      systems::Context<T>* context, const Vector3<T>& w_FM) const {
+    get_mobilizer().SetAngularVelocity(context, w_FM);
+    return *this;
   }
 
   void set_default_quaternion(const Quaternion<double>& q_FM) {
@@ -77,11 +86,18 @@ class BallQuaternionJoint final : public Joint<T> {
     default_positions[3] = q_FM.z();
     this->set_default_positions(default_positions);
   }
+
+  Quaternion<double> get_default_quaternion() const {
+    const Vector4<double>& q_FM = this->default_positions().template head<4>();
+    return Quaternion<double>(q_FM[0], q_FM[1], q_FM[2], q_FM[3]);
+  }
+
  protected:
   void DoAddInOneForce(const systems::Context<T>&, int, const T&,
                        MultibodyForces<T>*) const final {
     throw std::logic_error(
-        "Ball Quaternion joints do not allow applying forces to individual degrees of "
+        "Ball Quaternion joints do not allow applying forces to individual "
+        "degrees of "
         "freedom.");
   }
 
@@ -142,12 +158,13 @@ class BallQuaternionJoint final : public Joint<T> {
   friend class BallQuaternionJoint;
 
   const internal::QuaternionBallMobilizer<T>& get_mobilizer() const {
-    return this->template get_mobilizer_downcast<internal::QuaternionBallMobilizer>();
+    return this
+        ->template get_mobilizer_downcast<internal::QuaternionBallMobilizer>();
   }
 
   internal::QuaternionBallMobilizer<T>& get_mutable_mobilizer() {
-    return this
-        ->template get_mutable_mobilizer_downcast<internal::QuaternionBallMobilizer>();
+    return this->template get_mutable_mobilizer_downcast<
+        internal::QuaternionBallMobilizer>();
   }
 
   template <typename ToScalar>
@@ -157,8 +174,8 @@ class BallQuaternionJoint final : public Joint<T> {
 
 template <typename T>
 const char BallQuaternionJoint<T>::kTypeName[] = "ball_quaternion";
-}
-}
+}  // namespace multibody
+}  // namespace drake
 
 DRAKE_DECLARE_CLASS_TEMPLATE_INSTANTIATIONS_ON_DEFAULT_SCALARS(
     class ::drake::multibody::BallQuaternionJoint);
