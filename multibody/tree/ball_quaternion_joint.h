@@ -92,6 +92,29 @@ class BallQuaternionJoint final : public Joint<T> {
     return Quaternion<double>(q_FM[0], q_FM[1], q_FM[2], q_FM[3]);
   }
 
+  // /// (Advanced) Sets the random distribution that the orientation of this joint
+  // /// will be randomly sampled from. If a translation (position) distribution
+  // /// has already been set with stochastic variables, it will remain so.
+  // /// Otherwise translation will be set to this joint's zero configuration.
+  // /// See get_quaternion() for details on the orientation representation.
+  // /// @note Use caution when setting a quaternion distribution. A naive uniform
+  // /// sampling of each component will not lead to a uniform sampling of the unit
+  // /// sphere. See `set_random_quaternion_distribution_to_uniform()` for the most
+  // /// common case of uniformly sampling rotations.
+  // void set_random_quaternion_distribution(
+  //     const Eigen::Quaternion<symbolic::Expression>& q_FM) {
+  //   get_mutable_mobilizer().set_random_quaternion_distribution(q_FM);
+  // }
+
+  // /// Sets the random distribution such that the orientation of this joint will
+  // /// be randomly sampled using uniformly sampled rotations.
+  // void set_random_quaternion_distribution_to_uniform() {
+  //   RandomGenerator generator;
+  //   auto q_FM =
+  //       math::UniformlyRandomQuaternion<symbolic::Expression>(&generator);
+  //   get_mutable_mobilizer().set_random_quaternion_distribution(q_FM);
+  // }
+
  protected:
   void DoAddInOneForce(const systems::Context<T>&, int, const T&,
                        MultibodyForces<T>*) const final {

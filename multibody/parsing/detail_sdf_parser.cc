@@ -32,6 +32,7 @@
 #include "drake/multibody/parsing/detail_sdf_geometry.h"
 #include "drake/multibody/parsing/detail_urdf_parser.h"
 #include "drake/multibody/parsing/scoped_names.h"
+#include "drake/multibody/tree/ball_quaternion_joint.h"
 #include "drake/multibody/tree/ball_rpy_joint.h"
 #include "drake/multibody/tree/curvilinear_joint.h"
 #include "drake/multibody/tree/fixed_offset_frame.h"
@@ -1790,6 +1791,27 @@ bool AddDrakeJointFromSpecification(const SDFormatDiagnostic& diagnostic,
         is_periodic);
     plant->AddJoint(std::make_unique<CurvilinearJoint<double>>(
         joint_name, *parent_frame, *child_frame, trajectory, damping));
+  } else if (joint_type == "ball_quaternion") {
+    // TODO: Error out when there are unused tags.
+    double damping = 0.0;
+    if (node->HasElement("drake:damping")) {
+      std::optional<double> maybe_damping =
+          ParseDouble(diagnostic, node, "drake:damping");
+      if (!maybe_damping.has_value()) {
+        return false;
+      }
+      damping = *maybe_damping;
+      if (damping < 0) {
+        std::string message = "ERROR: <drake:joint> '" + joint_name +
+                              "' has negative value for 'damping' attribute: " +
+                              std::to_string(damping);
+        diagnostic.Error(node, std::move(message));
+        return false;
+      }
+    }
+    plant->AddJoint(std::make_unique<BallQuaternionJoint<double>>(
+        joint_name, *parent_frame, *child_frame, damping));
+
   } else {
     std::string message =
         "ERROR: <drake:joint> '" + joint_name +
