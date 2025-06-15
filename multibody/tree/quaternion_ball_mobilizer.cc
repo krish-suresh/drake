@@ -172,8 +172,6 @@ QuaternionBallMobilizer<T>::QuaternionRateToAngularVelocityMatrix(
   const Vector4<T> q_FM_tilde =
       Vector4<T>(q_FM.w(), q_FM.x(), q_FM.y(), q_FM.z()) / q_norm;
 
-  // Gradient of the normalized quaternion with respect to the unnormalized
-  // generalized coordinates:
   const Matrix4<T> dqnorm_dq =
       (Matrix4<T>::Identity() - q_FM_tilde * q_FM_tilde.transpose()) / q_norm;
 
@@ -181,6 +179,15 @@ QuaternionBallMobilizer<T>::QuaternionRateToAngularVelocityMatrix(
                       2.0 * q_FM_tilde[2], 2.0 * q_FM_tilde[3]})
              .transpose() *
          dqnorm_dq;
+}
+
+template <typename T>
+auto QuaternionBallMobilizer<T>::get_zero_position() const -> QVector<double> {
+  QVector<double> q = QVector<double>::Zero();
+  const Quaternion<double> quaternion = Quaternion<double>::Identity();
+  q[0] = quaternion.w();
+  q.template segment<3>(1) = quaternion.vec();
+  return q;
 }
 
 template <typename T>
@@ -208,7 +215,6 @@ void QuaternionBallMobilizer<T>::DoMapQDotToVelocity(
     const systems::Context<T>& context,
     const Eigen::Ref<const VectorX<T>>& qdot, EigenPtr<VectorX<T>> v) const {
   const Quaternion<T> q_FM = get_quaternion(context);
-  // Angular component, w_WB = N⁺(q)⋅q̇_WB:
   *v = QuaternionRateToAngularVelocityMatrix(q_FM) * qdot.template head<4>();
 }
 

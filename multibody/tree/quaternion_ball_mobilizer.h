@@ -121,6 +121,8 @@ class QuaternionBallMobilizer final : public MobilizerImpl<T, 4, 3> {
   bool is_velocity_equal_to_qdot() const override { return false; }
 
  protected:
+  QVector<double> get_zero_position() const final;
+
   void DoCalcNMatrix(const systems::Context<T>& context,
                      EigenPtr<MatrixX<T>> N) const final;
 
