@@ -1,9 +1,9 @@
 #include "drake/multibody/tree/body_node_impl.h"
 
-#include "drake/multibody/tree/quaternion_ball_mobilizer.h"
 #include "drake/multibody/tree/curvilinear_mobilizer.h"
 #include "drake/multibody/tree/planar_mobilizer.h"
 #include "drake/multibody/tree/prismatic_mobilizer.h"
+#include "drake/multibody/tree/quaternion_ball_mobilizer.h"
 #include "drake/multibody/tree/quaternion_floating_mobilizer.h"
 #include "drake/multibody/tree/revolute_mobilizer.h"
 #include "drake/multibody/tree/rpy_ball_mobilizer.h"
@@ -946,12 +946,12 @@ void BodyNodeImpl<T, ConcreteMobilizer>::CalcSpatialAccelerationBias(
 
 // Macro used to explicitly instantiate implementations for every mobilizer.
 #define EXPLICITLY_INSTANTIATE_IMPLS(T)                           \
-  template class BodyNodeImpl<T, QuaternionBallMobilizer<T>>; \
   template class BodyNodeImpl<T, CurvilinearMobilizer<T>>;        \
   template class BodyNodeImpl<T, PlanarMobilizer<T>>;             \
   template class BodyNodeImpl<T, PrismaticMobilizerAxial<T, 0>>;  \
   template class BodyNodeImpl<T, PrismaticMobilizerAxial<T, 1>>;  \
   template class BodyNodeImpl<T, PrismaticMobilizerAxial<T, 2>>;  \
+  template class BodyNodeImpl<T, QuaternionBallMobilizer<T>>;     \
   template class BodyNodeImpl<T, QuaternionFloatingMobilizer<T>>; \
   template class BodyNodeImpl<T, RevoluteMobilizerAxial<T, 0>>;   \
   template class BodyNodeImpl<T, RevoluteMobilizerAxial<T, 1>>;   \
