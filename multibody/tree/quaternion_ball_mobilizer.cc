@@ -22,8 +22,8 @@ template <typename T>
 std::unique_ptr<BodyNode<T>> QuaternionBallMobilizer<T>::CreateBodyNode(
     const BodyNode<T>* parent_node, const RigidBody<T>* body,
     const Mobilizer<T>* mobilizer) const {
-  return std::make_unique<BodyNodeImpl<T, QuaternionBallMobilizer>>(parent_node, body,
-                                                             mobilizer);
+  return std::make_unique<BodyNodeImpl<T, QuaternionBallMobilizer>>(
+      parent_node, body, mobilizer);
 }
 
 template <typename T>
@@ -65,19 +65,17 @@ Quaternion<T> QuaternionBallMobilizer<T>::get_quaternion(
 }
 
 template <typename T>
-const QuaternionBallMobilizer<T>&
-QuaternionBallMobilizer<T>::SetQuaternion(systems::Context<T>* context,
-                                              const Quaternion<T>& q_FM) const {
+const QuaternionBallMobilizer<T>& QuaternionBallMobilizer<T>::SetQuaternion(
+    systems::Context<T>* context, const Quaternion<T>& q_FM) const {
   DRAKE_DEMAND(context != nullptr);
   SetQuaternion(*context, q_FM, &context->get_mutable_state());
   return *this;
 }
 
 template <typename T>
-const QuaternionBallMobilizer<T>&
-QuaternionBallMobilizer<T>::SetQuaternion(const systems::Context<T>&,
-                                              const Quaternion<T>& q_FM,
-                                              systems::State<T>* state) const {
+const QuaternionBallMobilizer<T>& QuaternionBallMobilizer<T>::SetQuaternion(
+    const systems::Context<T>&, const Quaternion<T>& q_FM,
+    systems::State<T>* state) const {
   DRAKE_DEMAND(state != nullptr);
   auto q = this->get_mutable_positions(state);
   DRAKE_ASSERT(q.size() == kNq);
@@ -95,15 +93,17 @@ Vector3<T> QuaternionBallMobilizer<T>::get_angular_velocity(
 }
 
 template <typename T>
-const QuaternionBallMobilizer<T>& QuaternionBallMobilizer<T>::SetAngularVelocity(
-    systems::Context<T>* context, const Vector3<T>& w_FM) const {
+const QuaternionBallMobilizer<T>&
+QuaternionBallMobilizer<T>::SetAngularVelocity(systems::Context<T>* context,
+                                               const Vector3<T>& w_FM) const {
   return SetAngularVelocity(*context, w_FM, &context->get_mutable_state());
 }
 
 template <typename T>
-const QuaternionBallMobilizer<T>& QuaternionBallMobilizer<T>::SetAngularVelocity(
-    const systems::Context<T>&, const Vector3<T>& w_FM,
-    systems::State<T>* state) const {
+const QuaternionBallMobilizer<T>&
+QuaternionBallMobilizer<T>::SetAngularVelocity(const systems::Context<T>&,
+                                               const Vector3<T>& w_FM,
+                                               systems::State<T>* state) const {
   auto v = this->get_mutable_velocities(state);
   DRAKE_ASSERT(v.size() == kNv);
   v = w_FM;
@@ -111,7 +111,8 @@ const QuaternionBallMobilizer<T>& QuaternionBallMobilizer<T>::SetAngularVelocity
 }
 
 template <typename T>
-math::RigidTransform<T> QuaternionBallMobilizer<T>::CalcAcrossMobilizerTransform(
+math::RigidTransform<T>
+QuaternionBallMobilizer<T>::CalcAcrossMobilizerTransform(
     const systems::Context<T>& context) const {
   const auto& q = this->get_positions(context);
   DRAKE_ASSERT(q.size() == kNq);
@@ -119,7 +120,8 @@ math::RigidTransform<T> QuaternionBallMobilizer<T>::CalcAcrossMobilizerTransform
 }
 
 template <typename T>
-SpatialVelocity<T> QuaternionBallMobilizer<T>::CalcAcrossMobilizerSpatialVelocity(
+SpatialVelocity<T>
+QuaternionBallMobilizer<T>::CalcAcrossMobilizerSpatialVelocity(
     const systems::Context<T>&, const Eigen::Ref<const VectorX<T>>& v) const {
   DRAKE_ASSERT(v.size() == kNv);
   return calc_V_FM(nullptr, v.data());
@@ -181,141 +183,33 @@ QuaternionBallMobilizer<T>::QuaternionRateToAngularVelocityMatrix(
          dqnorm_dq;
 }
 
-
-
 template <typename T>
-void QuaternionBallMobilizer<T>::DoCalcNMatrix(const systems::Context<T>& context,
-                                        EigenPtr<MatrixX<T>> N) const {
-  // The matrix N(q) relates q̇ to v as q̇ = N(q) * v, where q̇ = [ṙ, ṗ, ẏ]ᵀ and
-  // v = w_FM_F = [ω0, ω1, ω2]ᵀ is the mobilizer M frame's angular velocity in
-  // the mobilizer F frame, expressed in the F frame.
-  //
-  // ⌈ ṙ ⌉   ⌈          cos(y) / cos(p),           sin(y) / cos(p),  0 ⌉ ⌈ ω0 ⌉
-  // | ṗ | = |                  -sin(y),                    cos(y),  0 | | ω1 |
-  // ⌊ ẏ ⌋   ⌊ sin(p) * cos(y) / cos(p),  sin(p) * sin(y) / cos(p),  1 ⌋ ⌊ ω2 ⌋
-  //
-  // Note: N(q) is singular for p = π/2 + kπ, for k = ±1, ±2, ...
-  // See related code and comments in MapVelocityToQdot().
+void QuaternionBallMobilizer<T>::DoCalcNMatrix(
+    const systems::Context<T>& context, EigenPtr<MatrixX<T>> N) const {
+  *N = AngularVelocityToQuaternionRateMatrix(get_quaternion(context));
 }
 
 template <typename T>
-void QuaternionBallMobilizer<T>::DoCalcNplusMatrix(const systems::Context<T>& context,
-                                            EigenPtr<MatrixX<T>> Nplus) const {
-  // The matrix N⁺(q) relates v to q̇ as v = N⁺(q) * q̇, where q̇ = [ṙ, ṗ, ẏ]ᵀ and
-  // v = w_FM_F = [ω0, ω1, ω2]ᵀ is the mobilizer M frame's angular velocity in
-  // the mobilizer F frame, expressed in the F frame (thus w_FM_F = N⁺(q) * q̇).
-  //
-  // ⌈ ω0 ⌉   ⌈ cos(y) * cos(p),  -sin(y),  0 ⌉ ⌈ ṙ ⌉
-  // | ω1 | = | sin(y) * cos(p),   cos(y),  0 | | ṗ |
-  // ⌊ ω2 ⌋   ⌊         -sin(p),        0,  1 ⌋ ⌊ ẏ ⌋
-  //
-}
-
-template <typename T>
-void QuaternionBallMobilizer<T>::DoCalcNDotMatrix(const systems::Context<T>& context,
-                                           EigenPtr<MatrixX<T>> Ndot) const {
-  // Computes the 3x3 matrix Ṅ(q,q̇) that helps relate q̈ = Ṅ(q,q̇)⋅v + N(q)⋅v̇,
-  // where q = [r, p, y]ᵀ contains the roll (r), pitch (p) and yaw (y) angles
-  // and v = [wx, wy, wz]ᵀ represents W_FM_F (the angular velocity of the
-  // mobilizer's M frame measured in its F frame, expressed in the F frame).
-  //
-  // The 3x3 matrix N(q) relates q̇ to v as q̇ = N(q)⋅v, where
-  //
-  //        [          cos(y) / cos(p),           sin(y) / cos(p),  0]
-  // N(q) = [                  -sin(y),                    cos(y),  0]
-  //        [ sin(p) * cos(y) / cos(p),  sin(p) * sin(y) / cos(p),  1]
-  //
-  //          ⌈ -sy/cp ẏ + cy sp/cp² ṗ    cy/cp ẏ + sy sp/cp² ṗ,   0 ⌉
-  // Ṅ(q,q̇) = |                  -cy ẏ,                   -sy ẏ,   0 |
-  //          ⌊  cy/cp² ṗ - sp sy/cp ẏ,   sy/cp² ṗ + sp cy/cp ẏ,   0 ⌋
-  //
-  // where cp = cos(p), sp = sin(p), cy = cos(y), sy = sin(y).
-  // Note: Although the elements of Ṅ(q,q̇) are simply the time-derivatives of
-  // corresponding elements of N(q), result were simplified as follows.
-  // Ṅ[2, 0] = cy ṗ + sp² cy/cp² ṗ - sp sy/cp ẏ
-  //         =            cy/cp² ṗ - sp sy/cp ẏ.
-  // Ṅ[2, 1] = sy ṗ + sp² sy/cp² ṗ + sp cy/cp ẏ
-  //         =            sy/cp² ṗ + sp cy/cp ẏ.
-
-}
-
-template <typename T>
-void QuaternionBallMobilizer<T>::DoCalcNplusDotMatrix(
-    const systems::Context<T>& context, EigenPtr<MatrixX<T>> NplusDot) const {
-  // Computes the matrix Ṅ⁺(q,q̇) that helps relate v̇ = Ṅ⁺(q,q̇)⋅q̇ + N⁺(q)⋅q̈,
-  // where q = [r, p, y]ᵀ contains the roll (r), pitch (p) and yaw (y) angles
-  // and v = [wx, wy, wz]ᵀ represents W_FM_F (the angular velocity of the
-  // mobilizer's M frame measured in its F frame, expressed in the F frame).
-  //
-  // The 3x3 matrix N⁺(q) relates v to q̇ as v = N⁺(q)⋅q̇, where
-  //
-  //         [ cos(y) * cos(p),  -sin(y),  0]
-  // N⁺(q) = [ sin(y) * cos(p),   cos(y),  0]
-  //         [         -sin(p),        0,  1]
-  //
-  //           ⌈ -sy cp ẏ - cy sp ṗ,   -cy ẏ,   0 ⌉
-  // Ṅ⁺(q,q̇) = |  cy cp ẏ - sy sp ṗ    -sy ẏ,   0 |
-  //           ⌊              -cp ṗ,       0,   0 ⌋
-  //
-  // where cp = cos(p), sp = sin(p), cy = cos(y), sy = sin(y).
+void QuaternionBallMobilizer<T>::DoCalcNplusMatrix(
+    const systems::Context<T>& context, EigenPtr<MatrixX<T>> Nplus) const {
+  *Nplus = QuaternionRateToAngularVelocityMatrix(get_quaternion(context));
 }
 
 template <typename T>
 void QuaternionBallMobilizer<T>::DoMapVelocityToQDot(
     const systems::Context<T>& context, const Eigen::Ref<const VectorX<T>>& v,
     EigenPtr<VectorX<T>> qdot) const {
-  // The matrix N(q) relates q̇ to v as q̇ = N(q) * v, where q̇ = [ṙ, ṗ, ẏ]ᵀ and
-  // v = w_FM_F = [ω0, ω1, ω2]ᵀ is the mobilizer M frame's angular velocity in
-  // the mobilizer F frame, expressed in the F frame.
-  //
-  // ⌈ ṙ ⌉   ⌈          cos(y) / cos(p),           sin(y) / cos(p),  0 ⌉ ⌈ ω0 ⌉
-  // | ṗ | = |                  -sin(y),                    cos(y),  0 | | ω1 |
-  // ⌊ ẏ ⌋   ⌊ sin(p) * cos(y) / cos(p),  sin(p) * sin(y) / cos(p),  1 ⌋ ⌊ ω2 ⌋
-  //
-  // Note: N(q) is singular for p = π/2 + kπ, for k = ±1, ±2, ...
-  // See related code and comments in CalcNMatrix().
-  // Note: The calculation below is more efficient than calculating N(q) * v.
-  //
-  // Developer note: N(q) is calculated by first forming w_FM by adding three
-  // angular velocities, each related to an Euler angle rate (ṙ or ṗ or ẏ) in
-  // various frames (frame F, two intermediate frames, and frame M). This is
-  // discussed in [Diebel 2006, §5.2; Mitiguy (August 2019, §9.1].
-  // Note: Diebel's eq. 67 rotation matrix is the transpose of our R_FM. Still
-  // the expression for N(q) in [Diebel 2006], Eq. 76, is the same as herein.
-  //
-  // [Diebel 2006] Representing attitude: Euler angles, unit quaternions, and
-  //               rotation vectors. Stanford University.
-  // [Mitiguy August 2019] Mitiguy, P., 2019. Advanced Dynamics & Motion
-  //                       Simulation.
-
+  const Quaternion<T> q_FM = get_quaternion(context);
+  *qdot = AngularVelocityToQuaternionRateMatrix(q_FM) * v.template head<3>();
 }
 
 template <typename T>
 void QuaternionBallMobilizer<T>::DoMapQDotToVelocity(
     const systems::Context<T>& context,
     const Eigen::Ref<const VectorX<T>>& qdot, EigenPtr<VectorX<T>> v) const {
-  // The matrix N⁺(q) relates v to q̇ as v = N⁺(q) * q̇, where q̇ = [ṙ, ṗ, ẏ]ᵀ and
-  // v = w_FM_F = [ω0, ω1, ω2]ᵀ is the mobilizer M frame's angular velocity in
-  // the mobilizer F frame, expressed in the F frame (thus w_FM_F = N⁺(q) * q̇).
-  //
-  // ⌈ ω0 ⌉   ⌈ cos(y) * cos(p),  -sin(y),  0 ⌉ ⌈ ṙ ⌉
-  // | ω1 | = | sin(y) * cos(p),   cos(y),  0 | | ṗ |
-  // ⌊ ω2 ⌋   ⌊         -sin(p),        0,  1 ⌋ ⌊ ẏ ⌋
-  //
-  // See related code and comments in DoCalcNplusMatrix().
-  //
-  // Developer note: N(q) is calculated by first forming w_FM by adding three
-  // angular velocities, each related to an Euler angle rate (ṙ or ṗ or ẏ) in
-  // various frames (frame F, two intermediate frames, and frame M). This is
-  // discussed in [Diebel 2006, §5.2; Mitiguy (August 2019, §9.1].
-  // Note: Diebel's eq. 67 rotation matrix is the transpose of our R_FM. Still
-  // the expression for N(q) in [Diebel 2006], Eq. 76, is the same as herein.
-  //
-  // [Diebel 2006] Representing attitude: Euler angles, unit quaternions, and
-  //               rotation vectors. Stanford University.
-  // [Mitiguy August 2019] Mitiguy, P., 2019. Advanced Dynamics & Motion
-  //                       Simulation.
-
+  const Quaternion<T> q_FM = get_quaternion(context);
+  // Angular component, w_WB = N⁺(q)⋅q̇_WB:
+  *v = QuaternionRateToAngularVelocityMatrix(q_FM) * qdot.template head<4>();
 }
 
 template <typename T>
@@ -339,7 +233,8 @@ std::unique_ptr<Mobilizer<double>> QuaternionBallMobilizer<T>::DoCloneToScalar(
 }
 
 template <typename T>
-std::unique_ptr<Mobilizer<AutoDiffXd>> QuaternionBallMobilizer<T>::DoCloneToScalar(
+std::unique_ptr<Mobilizer<AutoDiffXd>>
+QuaternionBallMobilizer<T>::DoCloneToScalar(
     const MultibodyTree<AutoDiffXd>& tree_clone) const {
   return TemplatedDoCloneToScalar(tree_clone);
 }

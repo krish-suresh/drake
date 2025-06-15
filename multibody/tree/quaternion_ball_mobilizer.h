@@ -30,8 +30,8 @@ class QuaternionBallMobilizer final : public MobilizerImpl<T, 4, 3> {
   using HMatrix = typename MobilizerBase::template HMatrix<U>;
 
   QuaternionBallMobilizer(const SpanningForest::Mobod& mobod,
-                   const Frame<T>& inboard_frame_F,
-                   const Frame<T>& outboard_frame_M)
+                          const Frame<T>& inboard_frame_F,
+                          const Frame<T>& outboard_frame_M)
       : MobilizerBase(mobod, inboard_frame_F, outboard_frame_M) {}
 
   ~QuaternionBallMobilizer() final;
@@ -50,8 +50,8 @@ class QuaternionBallMobilizer final : public MobilizerImpl<T, 4, 3> {
 
   Quaternion<T> get_quaternion(const systems::Context<T>& context) const;
 
-//   void set_random_quaternion_distribution(
-//       const Eigen::Quaternion<symbolic::Expression>& q_FM);
+  //   void set_random_quaternion_distribution(
+  //       const Eigen::Quaternion<symbolic::Expression>& q_FM);
 
   const QuaternionBallMobilizer<T>& SetQuaternion(
       systems::Context<T>* context, const Quaternion<T>& q_FM) const;
@@ -62,14 +62,14 @@ class QuaternionBallMobilizer final : public MobilizerImpl<T, 4, 3> {
 
   const QuaternionBallMobilizer<T>& SetFromRotationMatrix(
       systems::Context<T>* context, const math::RotationMatrix<T>& R_FM) const {
-        const Eigen::Quaternion<T> q_FM = R_FM.ToQuaternion();
-        return SetQuaternion(context, q_FM);
-    }
+    const Eigen::Quaternion<T> q_FM = R_FM.ToQuaternion();
+    return SetQuaternion(context, q_FM);
+  }
 
   Vector3<T> get_angular_velocity(const systems::Context<T>& context) const;
 
-  const QuaternionBallMobilizer<T>& SetAngularVelocity(systems::Context<T>* context,
-                                                const Vector3<T>& w_FM) const;
+  const QuaternionBallMobilizer<T>& SetAngularVelocity(
+      systems::Context<T>* context, const Vector3<T>& w_FM) const;
 
   const QuaternionBallMobilizer<T>& SetAngularVelocity(
       const systems::Context<T>& context, const Vector3<T>& w_FM,
@@ -127,13 +127,11 @@ class QuaternionBallMobilizer final : public MobilizerImpl<T, 4, 3> {
   void DoCalcNplusMatrix(const systems::Context<T>& context,
                          EigenPtr<MatrixX<T>> Nplus) const final;
 
-  // Generally, q̈ = Ṅ(q,q̇)⋅v + N(q)⋅v̇. For this mobilizer, Ṅ is not simple.
-  void DoCalcNDotMatrix(const systems::Context<T>& context,
-                        EigenPtr<MatrixX<T>> Ndot) const final;
+  //   void DoCalcNDotMatrix(const systems::Context<T>& context,
+  //                         EigenPtr<MatrixX<T>> Ndot) const final;
 
-  // Generally, v̇ = Ṅ⁺(q,q̇)⋅q̇ + N⁺(q)⋅q̈. For this mobilizer, Ṅ⁺ is not simple.
-  void DoCalcNplusDotMatrix(const systems::Context<T>& context,
-                            EigenPtr<MatrixX<T>> NplusDot) const final;
+  //   void DoCalcNplusDotMatrix(const systems::Context<T>& context,
+  //                             EigenPtr<MatrixX<T>> NplusDot) const final;
 
   void DoMapVelocityToQDot(const systems::Context<T>& context,
                            const Eigen::Ref<const VectorX<T>>& v,
